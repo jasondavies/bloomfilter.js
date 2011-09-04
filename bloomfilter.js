@@ -56,4 +56,4 @@
   };
 
   exports.BloomFilter = BloomFilter;
-})(typeof exports !== "undefined" ? exports : window);
+})(typeof exports !== "undefined" ? exports : this);
