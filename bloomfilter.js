@@ -2,10 +2,10 @@
   function BloomFilter(m, k) {
     this.m = m;
     this.k = k;
-    this.buckets = [];
-    var n = Math.ceil(m / k),
+    var buckets = this.buckets = [],
+        n = Math.ceil(m / k),
         i = -1;
-    while (++i < n) this.buckets[i] = 0;
+    while (++i < n) buckets[i] = 0;
   }
 
   // See http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
@@ -34,8 +34,9 @@
   BloomFilter.prototype.add = function(v) {
     var l = this.locations(v),
         i = -1,
-        k = this.k;
-    while (++i < k) this.buckets[Math.floor(l[i] / k)] |= 1 << (l[i] % k)
+        k = this.k,
+        buckets = this.buckets;
+    while (++i < k) buckets[Math.floor(l[i] / k)] |= 1 << (l[i] % k)
   };
 
   BloomFilter.prototype.test = function(v) {
@@ -43,10 +44,11 @@
         n = l.length,
         i = -1,
         k = this.k,
-        b;
+        b,
+        buckets = this.buckets;
     while (++i < n) {
       b = l[i];
-      if ((this.buckets[Math.floor(b / k)] & (1 << (b % k))) === 0) {
+      if ((buckets[Math.floor(b / k)] & (1 << (b % k))) === 0) {
         return false;
       }
     }
