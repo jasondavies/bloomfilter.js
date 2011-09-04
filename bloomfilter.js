@@ -10,13 +10,24 @@
 
   // See http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
-    var h = fnv64(v);
-        a = h & 0xffffffff,
-        b = (h & 0xffffffff00000000) >> 32,
-        k = this.k,
+    var k = this.k,
+        m = this.m,
         r = [],
+        n = v.length,
+        a = 2166136261,
+        b,
+        c,
         i = -1;
-    while (++i < k) r[i] = (a + b * i) % this.m;
+    // Fowler/Noll/Vo hashing.
+    while (++i < n) {
+      c = v.charCodeAt(i);
+      a ^= (c & 0xff00) >> 8;
+      a *= 16777619;
+      a ^= c & 0xff;
+      a *= 16777619;
+    }
+    b = a * 16777619;
+    i = -1; while (++i < k) r[i] = (a + b * i) % m;
     return r;
   };
 
@@ -41,22 +52,6 @@
     }
     return true;
   };
-
-  // Fowler/Noll/Vo fast hash
-  function fnv64(d) {
-    var n = d.length,
-        h = 64,
-        i = -1,
-        c;
-    while (++i < n) {
-      c = d.charCodeAt(i);
-      h *= 1099511628211;
-      h ^= (c & 0xff00) >> 8;
-      h *= 1099511628211;
-      h ^= c & 0xff;
-    }
-    return h;
-  }
 
   exports.BloomFilter = BloomFilter;
 })(typeof exports !== "undefined" ? exports : window);
