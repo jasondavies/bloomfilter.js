@@ -1,0 +1,21 @@
+{
+  "name": "bloomfilter.js",
+  "version": "0.0.1",
+  "description": "Fast bloom filter in JavaScript.",
+  "keywords": [
+    "bloom filter",
+    "probabilistic data structure"
+  ],
+  "homepage": "https://github.com/jasondavies/bloomfilter.js",
+  "author": {
+    "name": "Jason Davies",
+    "url": "http://www.jasondavies.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/jasondavies/bloomfilter.js.git"
+  },
+  "dependencies": {
+    "vows": "0.5.11"
+  }
+}
