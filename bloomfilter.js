@@ -8,26 +8,39 @@
     while (++i < n) buckets[i] = 0;
   }
 
+  // Fowler/Noll/Vo hashing.
+  function fnv_1a(v) {
+    var n = v.length,
+        a = 2166136261,
+        c,
+        i = -1;
+    while (++i < n) {
+      c = v.charCodeAt(i);
+      a ^= (c & 0xff00) >> 8;
+      a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      a &= 0xffffffff;
+      a ^= c & 0xff;
+      a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      a &= 0xffffffff;
+    }
+    return a;
+  }
+
+  // One additional iteration of FNV, given a hash.
+  function fnv_1a_b(a) {
+    a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+    return a & 0xffffffff;
+  }
+
   // See http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
         m = this.m,
         r = [],
-        n = v.length,
-        a = 2166136261,
-        b,
-        c,
+        a = fnv_1a(v),
+        b = fnv_1a_b(a),
         i = -1;
-    // Fowler/Noll/Vo hashing.
-    while (++i < n) {
-      c = v.charCodeAt(i);
-      a ^= (c & 0xff00) >> 8;
-      a *= 16777619;
-      a ^= c & 0xff;
-      a *= 16777619;
-    }
-    b = a * 16777619;
-    i = -1; while (++i < k) r[i] = (a + b * i) % m;
+    while (++i < k) r[i] = (a + b * i) % m;
     return r;
   };
 
@@ -56,4 +69,6 @@
   };
 
   exports.BloomFilter = BloomFilter;
+  exports.fnv_1a = fnv_1a;
+  exports.fnv_1a_b = fnv_1a_b;
 })(typeof exports !== "undefined" ? exports : this);
