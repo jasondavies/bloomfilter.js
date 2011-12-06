@@ -16,6 +16,6 @@
     "url": "http://github.com/jasondavies/bloomfilter.js.git"
   },
   "dependencies": {
-    "vows": "0.5.11"
+    "vows": "0.6.0"
   }
 }
