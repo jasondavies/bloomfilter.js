@@ -6,6 +6,7 @@
   function BloomFilter(m, k) {
     this.m = m;
     this.k = k;
+    this._locations = [];
     var buckets = this.buckets = [],
         n = Math.ceil(m / k),
         i = -1;
@@ -16,7 +17,7 @@
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
         m = this.m,
-        r = [],
+        r = this._locations,
         a = fnv_1a(v),
         b = fnv_1a_b(a),
         i = -1;
