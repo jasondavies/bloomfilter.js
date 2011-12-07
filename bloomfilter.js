@@ -69,18 +69,26 @@
     var n = v.length,
         a = 2166136261,
         c,
+        d,
         i = -1;
     while (++i < n) {
       c = v.charCodeAt(i);
-      a ^= (c & 0xff00) >> 8;
-      a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
-      // Trickery to work around 32-bit signed integers (we need unsigned).
-      a &= 0xffffffff;
+      if (d = c & 0xff000000) {
+        a ^= d >> 24;
+        a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      }
+      if (d = c & 0xff0000) {
+        a ^= d >> 16;
+        a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      }
+      if (d = c & 0xff00) {
+        a ^= d >> 8;
+        a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      }
       a ^= c & 0xff;
       a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
-      a &= 0xffffffff;
     }
-    return a;
+    return a & 0xffffffff;
   }
 
   // One additional iteration of FNV, given a hash.
