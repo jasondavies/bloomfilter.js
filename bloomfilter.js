@@ -3,18 +3,20 @@
   exports.fnv_1a = fnv_1a;
   exports.fnv_1a_b = fnv_1a_b;
 
+  var typedArrays = typeof ArrayBuffer !== "undefined";
+
   function BloomFilter(m, k) {
     this.m = m;
     this.k = k;
     var n = Math.ceil(m / k);
-    try {
+    if (typedArrays) {
       var buffer = new ArrayBuffer(4 * n),
           kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
           array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
           kbuffer = new ArrayBuffer(kbytes * k);
       this.buckets = new Uint32Array(buffer);
       this._locations = new array(kbuffer);
-    } catch (e) {
+    } else {
       var buckets = this.buckets = [],
           i = -1;
       while (++i < n) buckets[i] = 0;
