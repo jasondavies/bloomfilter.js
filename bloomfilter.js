@@ -5,12 +5,13 @@
 
   var typedArrays = typeof ArrayBuffer !== "undefined";
 
+  // Creates a new bloom filter with *m* bits and *k* hashing functions.
   function BloomFilter(m, k) {
     this.m = m;
     this.k = k;
-    var n = Math.ceil(m / k);
+    var n = Math.ceil(m / 32);
     if (typedArrays) {
-      var buffer = new ArrayBuffer(4 * n),
+      var buffer = new ArrayBuffer(32 * n),
           kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
           array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
           kbuffer = new ArrayBuffer(kbytes * k);
