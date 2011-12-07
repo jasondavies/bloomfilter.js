@@ -4,7 +4,29 @@ Bloom Filter
 This JavaScript bloom filter implementation uses the non-cryptographic
 [Fowler–Noll–Vo hash function][1] for speed.
 
-Although the bloom filter requires *n* hash functions, we can simulate this
+Usage
+-----
+
+    var bloom = new BloomFilter(
+      32 * 256, // number of bits to allocate.
+      16        // number of hash functions.
+    );
+
+    // Add some elements to the filter.
+    bloom.add("foo");
+    bloom.add("bar");
+
+    // Test if an item is in our filter.
+    // Returns true if an item is probably in the set,
+    // or false if an item is definitely not in the set.
+    bloom.test("foo");
+    bloom.test("bar");
+    bloom.test("blah");
+
+Implementation
+--------------
+
+Although the bloom filter requires *k* hash functions, we can simulate this
 using only *two* hash functions.  In fact, we cheat and get the second hash
 function almost for free by iterating once more on the first hash using the FNV
 hash algorithm.
