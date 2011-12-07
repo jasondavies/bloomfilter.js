@@ -44,20 +44,21 @@
     var l = this.locations(v),
         i = -1,
         k = this.k,
+        m = this.m,
         buckets = this.buckets;
-    while (++i < k) buckets[Math.floor(l[i] / k)] |= 1 << (l[i] % k)
+    while (++i < k) buckets[Math.floor(l[i] / m)] |= 1 << (l[i] % m);
   };
 
   BloomFilter.prototype.test = function(v) {
     var l = this.locations(v),
-        n = l.length,
         i = -1,
         k = this.k,
+        m = this.m,
         b,
         buckets = this.buckets;
-    while (++i < n) {
+    while (++i < k) {
       b = l[i];
-      if ((buckets[Math.floor(b / k)] & (1 << (b % k))) === 0) {
+      if ((buckets[Math.floor(b / m)] & (1 << (b % m))) === 0) {
         return false;
       }
     }
