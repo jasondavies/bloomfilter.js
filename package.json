@@ -1,6 +1,6 @@
 {
-  "name": "bloomfilter.js",
-  "version": "0.0.3",
+  "name": "bloomfilter",
+  "version": "0.0.4",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
     "bloom filter",
@@ -15,6 +15,7 @@
     "type": "git",
     "url": "http://github.com/jasondavies/bloomfilter.js.git"
   },
+  "main": "bloomfilter.js",
   "dependencies": {
     "vows": "0.6.0"
   }
