@@ -6,19 +6,20 @@
   function BloomFilter(m, k) {
     this.m = m;
     this.k = k;
-    var buckets,
-        n = Math.ceil(m / k),
-        i = -1;
+    var n = Math.ceil(m / k);
     try {
       var buffer = new ArrayBuffer(4 * n),
-          kbuffer = new ArrayBuffer(4 * k);
-      buckets = this.buckets = new Uint32Array(buffer);
-      this._locations = new Uint32Array(kbuffer);
+          kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
+          array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
+          kbuffer = new ArrayBuffer(kbytes * k);
+      this.buckets = new Uint32Array(buffer);
+      this._locations = new array(kbuffer);
     } catch (e) {
-      buckets = this.buckets = [];
+      var buckets = this.buckets = [],
+          i = -1;
+      while (++i < n) buckets[i] = 0;
       this._locations = [];
     }
-    while (++i < n) buckets[i] = 0;
   }
 
   // See http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
@@ -28,8 +29,12 @@
         r = this._locations,
         a = fnv_1a(v),
         b = fnv_1a_b(a),
-        i = -1;
-    while (++i < k) r[i] = (a + b * i) % m;
+        i = -1,
+        x;
+    while (++i < k) {
+      x = (a + b * i) % m;
+      r[i] = x < 0 ? x + m : x;
+    }
     return r;
   };
 
@@ -67,6 +72,7 @@
       c = v.charCodeAt(i);
       a ^= (c & 0xff00) >> 8;
       a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+      // Trickery to work around 32-bit signed integers (we need unsigned).
       a &= 0xffffffff;
       a ^= c & 0xff;
       a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
