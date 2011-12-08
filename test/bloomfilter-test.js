@@ -40,7 +40,8 @@ suite.addBatch({
     },
     "wtf": function() {
       var f = new BloomFilter(20, 10);
-      assert.equal(f.locations("wtf").length, 10);
+      f.add("abc");
+      assert.equal(f.test("wtf"), false);
     }
   }
 });
