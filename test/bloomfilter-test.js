@@ -53,8 +53,35 @@ suite.addBatch({
       assert.equal(fnv_1a("foob"), 0x3f5076ef & 0xffffffff);
       assert.equal(fnv_1a("fooba"), 0x39aaa18a & 0xffffffff);
       assert.equal(fnv_1a("foobar"), 0xbf9cf968 & 0xffffffff);
+      assert.equal(fnv_1a("ch"), 0x5f299f4e & 0xffffffff);
+      assert.equal(fnv_1a("cho"), 0xef8580f3 & 0xffffffff);
+      assert.equal(fnv_1a("chon"), 0xac297727 & 0xffffffff);
+      assert.equal(fnv_1a("chong"), 0x4546b9c0 & 0xffffffff);
+      assert.equal(fnv_1a("chongo"), 0xbd564e7d & 0xffffffff);
+      assert.equal(fnv_1a("chongo "), 0x6bdd5c67 & 0xffffffff);
+      assert.equal(fnv_1a("chongo w"), 0xdd77ed30 & 0xffffffff);
+      assert.equal(fnv_1a("chongo wa"), 0xf4ca9683 & 0xffffffff);
+      assert.equal(fnv_1a("chongo was"), 0x4aeb9bd0 & 0xffffffff);
+      assert.equal(fnv_1a("chongo was "), 0xe0e67ad0 & 0xffffffff);
+      assert.equal(fnv_1a("chongo was h"), 0xc2d32fa8 & 0xffffffff);
+      assert.equal(fnv_1a("chongo was he"), 0x7f743fb7 & 0xffffffff);
+      assert.equal(fnv_1a("chongo was her"), 0x6900631f & 0xffffffff);
+      assert.equal(fnv_1a("chongo was here"), 0xc59c990e & 0xffffffff);
+      assert.equal(fnv_1a("chongo was here!"), 0x448524fd & 0xffffffff);
+      assert.equal(fnv_1a("chongo was here!\n"), 0xd49930d5 & 0xffffffff);
+      assert.equal(fnv_1a(repeat(500, "\x00")), 0xfa823dd5 & 0xffffffff);
+      assert.equal(fnv_1a(repeat(500, "\x07")), 0x21a27271 & 0xffffffff);
+      assert.equal(fnv_1a(repeat(500, "~")),    0x83c5c6d5 & 0xffffffff);
+      assert.equal(fnv_1a(repeat(500, "\x7f")), 0x813b0881 & 0xffffffff);
     }
   }
 });
 
 suite.export(module);
+
+function repeat(n, d) {
+  var r = [],
+      i = -1;
+  while (++i < n) r[i] = d;
+  return r.join("");
+}
