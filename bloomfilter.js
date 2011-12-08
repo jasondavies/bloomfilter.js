@@ -45,21 +45,19 @@
     var l = this.locations(v),
         i = -1,
         k = this.k,
-        m = this.m,
         buckets = this.buckets;
-    while (++i < k) buckets[Math.floor(l[i] / m)] |= 1 << (l[i] % m);
+    while (++i < k) buckets[Math.floor(l[i] / 32)] |= 1 << (l[i] % 32);
   };
 
   BloomFilter.prototype.test = function(v) {
     var l = this.locations(v),
         i = -1,
         k = this.k,
-        m = this.m,
         b,
         buckets = this.buckets;
     while (++i < k) {
       b = l[i];
-      if ((buckets[Math.floor(b / m)] & (1 << (b % m))) === 0) {
+      if ((buckets[Math.floor(b / 32)] & (1 << (b % 32))) === 0) {
         return false;
       }
     }
