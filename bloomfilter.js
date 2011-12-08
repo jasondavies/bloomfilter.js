@@ -33,10 +33,10 @@
         a = fnv_1a(v),
         b = fnv_1a_b(a),
         i = -1,
-        x;
+        x = a % m;
     while (++i < k) {
-      x = (a + b * i) % m;
-      r[i] = x < 0 ? x + m : x;
+      r[i] = x < 0 ? (x + m) : x;
+      x = (x + b) % m;
     }
     return r;
   };
@@ -90,12 +90,23 @@
       a ^= c & 0xff;
       a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
     }
+    // From http://home.comcast.net/~bretm/hash/6.html
+    a += a << 13;
+    a ^= a >> 7;
+    a += a << 3;
+    a ^= a >> 17;
+    a += a << 5;
     return a & 0xffffffff;
   }
 
   // One additional iteration of FNV, given a hash.
   function fnv_1a_b(a) {
     a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
+    a += a << 13;
+    a ^= a >> 7;
+    a += a << 3;
+    a ^= a >> 17;
+    a += a << 5;
     return a & 0xffffffff;
   }
 })(typeof exports !== "undefined" ? exports : this);
