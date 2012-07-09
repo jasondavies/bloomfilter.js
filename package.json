@@ -1,6 +1,6 @@
 {
   "name": "bloomfilter",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
     "bloom filter",
