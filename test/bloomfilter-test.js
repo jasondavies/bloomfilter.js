@@ -30,9 +30,9 @@ suite.addBatch({
     },
     "basic uint32": function() {
       var f = new BloomFilter(1000, 4),
-          n1 = "\u100",
-          n2 = "\u101",
-          n3 = "\u103";
+          n1 = "\u0100",
+          n2 = "\u0101",
+          n3 = "\u0103";
       f.add(n1);
       assert.equal(f.test(n1), true);
       assert.equal(f.test(n2), false);
@@ -42,6 +42,12 @@ suite.addBatch({
       var f = new BloomFilter(20, 10);
       f.add("abc");
       assert.equal(f.test("wtf"), false);
+    },
+    "works with integer types": function() {
+      var f = new BloomFilter(1000, 4);
+      f.add(1);
+      assert.equal(f.test(1), true);
+      assert.equal(f.test(2), false);
     }
   }
 });
