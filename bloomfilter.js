@@ -42,7 +42,7 @@
   };
 
   BloomFilter.prototype.add = function(v) {
-    var l = this.locations(v),
+    var l = this.locations(v.toString()),
         i = -1,
         k = this.k,
         buckets = this.buckets;
@@ -50,7 +50,7 @@
   };
 
   BloomFilter.prototype.test = function(v) {
-    var l = this.locations(v),
+    var l = this.locations(v.toString()),
         i = -1,
         k = this.k,
         b,

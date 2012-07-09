@@ -42,7 +42,13 @@ suite.addBatch({
       var f = new BloomFilter(20, 10);
       f.add("abc");
       assert.equal(f.test("wtf"), false);
-    }
+    },
+		"works with integer types": function() {
+			var f = new BloomFilter(1000, 4);
+			f.add(1);
+			assert.equal(f.test(1), true);
+			assert.equal(f.test(2), false);
+		}
   }
 });
 
