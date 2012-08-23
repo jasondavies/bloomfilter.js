@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/jasondavies/bloomfilter.js.png)](http://travis-ci.org/jasondavies/bloomfilter.js)
 Bloom Filter
 ============
 
