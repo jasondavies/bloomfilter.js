@@ -11,11 +11,10 @@
     this.k = k;
     var n = Math.ceil(m / 32);
     if (typedArrays) {
-      var buffer = new ArrayBuffer(4 * n),
-          kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
+      var kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
           array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
           kbuffer = new ArrayBuffer(kbytes * k);
-      this.buckets = new Uint32Array(buffer);
+      this.buckets = new Int32Array(n);
       this._locations = new array(kbuffer);
     } else {
       var buckets = this.buckets = [],
