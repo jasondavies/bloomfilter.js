@@ -1,7 +1,8 @@
 var bf = require("../bloomfilter"),
     BloomFilter = bf.BloomFilter,
     fnv_1a = bf.fnv_1a,
-    fnv_1a_b = bf.fnv_1a_b;
+    fnv_1a_b = bf.fnv_1a_b,
+    fromBytestream = bf.fromBytestream;
 
 var vows = require("vows"),
     assert = require("assert");
@@ -48,6 +49,14 @@ suite.addBatch({
       f.add(1);
       assert.equal(f.test(1), true);
       assert.equal(f.test(2), false);
+    },
+    "can be serialized": function() {
+      var f = new BloomFilter(1000, 4);
+      f.add(1);
+      var b = f.toBytestream();
+      var g = fromBytestream(b);
+      assert.equal(g.test(1), true);
+      assert.equal(g.test(2), false);
     }
   }
 });
