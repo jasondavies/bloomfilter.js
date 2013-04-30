@@ -5,21 +5,30 @@
 
   var typedArrays = typeof ArrayBuffer !== "undefined";
 
-  // Creates a new bloom filter with *m* bits and *k* hashing functions.
+  // Creates a new bloom filter.  If *m* is an array-like object, with a length
+  // property, then the bloom filter is loaded with data from the array, where
+  // each element is a 32-bit integer.  Otherwise, *m* should specify the
+  // number of bits.  *k* specifies the number of hashing functions.
   function BloomFilter(m, k) {
+    var a;
+    if (typeof m !== "number") a = m, m = a.length * 32;
+
     this.m = m;
     this.k = k;
-    var n = Math.ceil(m / 32);
+    var n = Math.ceil(m / 32),
+        i = -1;
+
     if (typedArrays) {
       var kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
           array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
-          kbuffer = new ArrayBuffer(kbytes * k);
-      this.buckets = new Int32Array(n);
+          kbuffer = new ArrayBuffer(kbytes * k),
+          buckets = this.buckets = new Int32Array(n);
+      if (a) while (++i < n) buckets[i] = a[i];
       this._locations = new array(kbuffer);
     } else {
-      var buckets = this.buckets = [],
-          i = -1;
-      while (++i < n) buckets[i] = 0;
+      var buckets = this.buckets = [];
+      if (a) while (++i < n) buckets[i] = a[i];
+      else while (++i < n) buckets[i] = 0;
       this._locations = [];
     }
   }

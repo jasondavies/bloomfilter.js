@@ -1,6 +1,6 @@
 {
   "name": "bloomfilter",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
     "bloom filter",
@@ -17,7 +17,7 @@
   },
   "main": "bloomfilter.js",
   "devDependencies": {
-    "vows": "0.6.0"
+    "vows": "0.7.0"
   },
   "scripts": {
     "test": "./node_modules/vows/bin/vows"
