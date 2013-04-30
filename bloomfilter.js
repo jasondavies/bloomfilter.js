@@ -1,5 +1,6 @@
 (function(exports) {
   exports.BloomFilter = BloomFilter;
+  exports.fromBytestream = fromBytestream;
   exports.fnv_1a = fnv_1a;
   exports.fnv_1a_b = fnv_1a_b;
 
@@ -71,6 +72,62 @@
     }
     return true;
   };
+
+  BloomFilter.prototype.toBytestream = function() {
+    var res = [],
+        buckets = this.buckets,
+        i,
+        j;
+
+    for(i = 0; i < 4; i++) {
+      res.push((this.m >> 8*i) & 255);
+    }
+
+    for(i = 0; i < 2; i++) {
+      res.push((this.k >> 8*i) & 255);
+    }
+
+    for(j = 0; j < buckets.length; j++) {
+      for(i = 0; i < 4; i++) {
+        res.push((buckets[j] >> 8*i) & 255);
+      }
+    }
+
+    return res;
+  };
+
+  function fromBytestream(bytes) {
+    var m = 0,
+        k = 0,
+        idx = 0,
+        i,
+        j;
+
+    for(i = 3; i >= 0; i--) {
+      m = m << 8;
+      m = m | (bytes[idx + i] & 255);
+    }
+    idx += 4;
+
+    for(i = 1; i >= 0; i--) {
+      k = k << 8;
+      k = k | (bytes[idx + i] & 255);
+    }
+    idx += 2;
+
+    var bloom = new BloomFilter(m,k),
+        buckets = bloom.buckets;
+
+    for(j = 0; j < buckets.length; j++) {
+      for(i = 3; i >= 0; i--) {
+        buckets[j] = buckets[j] << 8;
+        buckets[j] = buckets[j] | (bytes[idx + i] & 255);
+      }
+      idx += 4;
+    }
+
+    return bloom;
+  }
 
   // Fowler/Noll/Vo hashing.
   function fnv_1a(v) {
