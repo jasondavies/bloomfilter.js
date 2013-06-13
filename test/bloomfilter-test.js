@@ -48,6 +48,17 @@ suite.addBatch({
       f.add(1);
       assert.equal(f.test(1), true);
       assert.equal(f.test(2), false);
+    },
+    "item estimate": function() {
+      var i, f = new BloomFilter(1000, 4);
+      for (i = 0; i < 100; i++) {
+        f.add(i);
+      }
+      assert.equal(f.items().toString(), '101.24130826662832');
+      for (i = 100; i < 1000; i++) {
+        f.add(i);
+      }
+      assert.equal(f.items().toString(), '1067.1744873417194');
     }
   }
 });
