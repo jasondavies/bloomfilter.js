@@ -48,6 +48,13 @@ suite.addBatch({
       f.add(1);
       assert.equal(f.test(1), true);
       assert.equal(f.test(2), false);
+    },
+    "size": function() {
+      var f = new BloomFilter(1000, 4), i = -1;
+      while (++i < 100) f.add(i);
+      assert.inDelta(f.size(), 101.241308, 1e-6);
+      --i; while (++i < 1000) f.add(i);
+      assert.inDelta(f.size(), 1067.174487, 1e-6);
     }
   }
 });

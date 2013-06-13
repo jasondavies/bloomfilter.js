@@ -72,6 +72,21 @@
     return true;
   };
 
+  // Estimated cardinality.
+  BloomFilter.prototype.size = function() {
+    var buckets = this.buckets,
+        bits = 0;
+    for (var i = 0, n = buckets.length; i < n; ++i) bits += popcnt(buckets[i]);
+    return -this.m * Math.log(1 - bits / this.m) / this.k;
+  };
+
+  // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+  function popcnt(v) {
+    v -= (v >> 1) & 0x55555555;
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+    return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+  }
+
   // Fowler/Noll/Vo hashing.
   function fnv_1a(v) {
     var n = v.length,
