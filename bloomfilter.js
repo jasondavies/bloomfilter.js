@@ -72,6 +72,25 @@
     return true;
   };
 
+  // Provides an estimate of the number of items in the filter
+  // See: http://en.wikipedia.org/wiki/Bloom_filter#Approximating_the_number_of_items_in_a_Bloom_filter
+  BloomFilter.prototype.items = function() {
+    var bits = 0;
+    for (var i = 0; i < this.buckets.length; i++) {
+      bits += countBits(this.buckets[i]);
+    }
+    return -this.m*Math.log(1 - bits/this.m)/this.k;
+  };
+
+  function countBits(x) {
+    // See: http://bits.stephan-brumme.com/countBits.html for an explanation
+    x  = x - ((x >> 1) & 0x55555555);
+    x  = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x  = x + (x >> 4);
+    x &= 0xF0F0F0F;
+    return (x * 0x01010101) >> 24;
+  }
+
   // Fowler/Noll/Vo hashing.
   function fnv_1a(v) {
     var n = v.length,
