@@ -8,15 +8,16 @@
   // Creates a new bloom filter.  If *m* is an array-like object, with a length
   // property, then the bloom filter is loaded with data from the array, where
   // each element is a 32-bit integer.  Otherwise, *m* should specify the
-  // number of bits.  *k* specifies the number of hashing functions.
+  // number of bits.  Note that *m* is rounded up to the nearest multiple of
+  // 32.  *k* specifies the number of hashing functions.
   function BloomFilter(m, k) {
     var a;
     if (typeof m !== "number") a = m, m = a.length * 32;
 
-    this.m = m;
-    this.k = k;
     var n = Math.ceil(m / 32),
         i = -1;
+    this.m = m = n * 32;
+    this.k = k;
 
     if (typedArrays) {
       var kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
