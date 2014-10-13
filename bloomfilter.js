@@ -112,11 +112,11 @@
       a ^= c & 0xff;
       a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
     }
-    // From http://home.comcast.net/~bretm/hash/6.html
+    // From https://web.archive.org/web/20131019013225/http://home.comcast.net/~bretm/hash/6.html
     a += a << 13;
-    a ^= a >> 7;
+    a ^= a >>> 7;
     a += a << 3;
-    a ^= a >> 17;
+    a ^= a >>> 17;
     a += a << 5;
     return a & 0xffffffff;
   }
@@ -125,9 +125,9 @@
   function fnv_1a_b(a) {
     a += (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
     a += a << 13;
-    a ^= a >> 7;
+    a ^= a >>> 7;
     a += a << 3;
-    a ^= a >> 17;
+    a ^= a >>> 17;
     a += a << 5;
     return a & 0xffffffff;
   }
