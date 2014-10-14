@@ -59,29 +59,25 @@ class BloomSet(object):
         k = round(math.log(2) * m / n)
         return cls(int(m),int(k))
 
-    def locations(self, v):
-        r = []
+    def _locations(self, v):
         a = _fnv_1a(v)
         b = _fnv_1a_b(a)
         m = self.m
 
         x = a % m
         for _ in range(self.k):
-            r.append(x+m if x<0 else x)
+            yield (x+m if x<0 else x)
             x = (x + b) % m
-        return r
 
     def add(self, v):
-        l = self.locations(v)
         buckets = self.buckets
-        for i in range(self.k):
-            buckets[l[i] // 8] |= 1 << (l[i] % 8)
+        for l in self._locations(v):
+            buckets[l // 8] |= 1 << (l % 8)
 
     def __contains__(self, v):
-        l = self.locations(v)
         buckets = self.buckets
-        for i in range(self.k):
-            if not buckets[l[i] // 8] & (1 << (l[i] % 8)):
+        for l in self._locations(v):
+            if not buckets[l // 8] & (1 << (l % 8)):
                 return False
         return True
 
