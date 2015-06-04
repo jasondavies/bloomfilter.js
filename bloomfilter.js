@@ -34,7 +34,7 @@
     }
   }
 
-  // See http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
+  // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
         m = this.m,
