@@ -51,10 +51,10 @@ suite.addBatch({
     },
     "size": function() {
       var f = new BloomFilter(1000, 4), i = -1;
-      while (++i < 100) f.add(i);
-      assert.inDelta(f.size(), 97.014763, 1e-6);
-      --i; while (++i < 1000) f.add(i);
-      assert.inDelta(f.size(), 1007.549320, 1e-6);
+      for (var i = 0; i < 100; ++i) f.add(i);
+      assert.inDelta(f.size(), 99.953102, 1e-6);
+      for (var i = 0; i < 1000; ++i) f.add(i);
+      assert.inDelta(f.size(), 950.424571, 1e-6);
     }
   }
 });
