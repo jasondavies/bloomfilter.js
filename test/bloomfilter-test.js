@@ -1,5 +1,6 @@
 var bf = require("../bloomfilter"),
     BloomFilter = bf.BloomFilter,
+    StableBloomFilter = bf.StableBloomFilter,
     fnv_1a = bf.fnv_1a,
     fnv_1a_b = bf.fnv_1a_b;
 
@@ -55,6 +56,50 @@ suite.addBatch({
       assert.inDelta(f.size(), 99.953102, 1e-6);
       for (var i = 0; i < 1000; ++i) f.add(i);
       assert.inDelta(f.size(), 950.424571, 1e-6);
+    }
+  },
+  "stable bloom filter": {
+    "false positive calculation": function() {
+      /**
+       * if false positive rate FPS = 1, then P=0 (we don't need to reset /any/ bits if there is a false positive rate of 100%!)
+       */
+      var f;
+      
+      f = new StableBloomFilter(1024, 4, 4, {fps: 0.01});
+      assert.equal(f.p, 157);
+
+      f = new StableBloomFilter(1024, 4, 4, {fps: 0.02});
+      assert.equal(f.p, 126);
+
+      f = new StableBloomFilter(1024, 4, 4, {fps: 0.05});
+      assert.equal(f.p, 93);
+
+      f = new StableBloomFilter(1024, 4, 4, {fps: 0.001});
+      assert.equal(f.p, 306);
+
+      f = new StableBloomFilter(1024, 4, 4, {fps: 1});
+      assert.equal(f.p, 0);
+
+    },
+
+    "basic": function() {
+      var f = new StableBloomFilter(1024, 4, 10, {fps: 0.00001}),
+          n1 = "Bess",
+          n2 = "Jane";
+      f.add(n1);
+
+      assert.equal(f.test(n1), true);
+      assert.equal(f.test(n2), false);
+    },
+
+    "purging": function() {
+      var f = new StableBloomFilter(1024, 4, 10, {fps: 0}),
+          n1 = "Bess",
+          n2 = "Jane";
+
+      f.add(n1);
+      assert.equal(f.test(n1), true);
+      assert.equal(f.test(n2), false);
     }
   }
 });
