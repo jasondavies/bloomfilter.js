@@ -313,4 +313,47 @@
     return offsets;
   };
 
+  /**
+   * Save the bloom filter and the parameters. Returns a string.
+   */
+  StableBloomFilter.prototype.serialize = function() {
+    var bufferString = "";
+
+    var arrayView = new Uint8Array(this.buffer);
+
+    for(var i = 0; i < arrayView.length; i++) {
+      bufferString += String.fromCharCode(arrayView[i]);
+    }
+
+    return JSON.stringify({
+      m: this.m,
+      k: this.k,
+      d: this.d,
+      p: this.p,
+      buffer: bufferString
+    });
+  };
+
+  StableBloomFilter.prototype.unserialize = function(dataSerialized) {
+    var data = JSON.parse(dataSerialized);
+
+    var dataString = data.buffer;
+
+    var m = data.m,
+        k = data.k,
+        d = data.d,
+        p = data.p;
+
+    var filter = new StableBloomFilter(m, k, d, {p: p});
+
+    var buffer = new ArrayBuffer(dataString.length);
+    var arrayView = new Uint8Array(filter.buffer);
+
+    for(var i = 0; i < dataString.length; i++) {
+      arrayView[i] = dataString.charCodeAt(i);
+    }
+
+    return filter;
+  };
+
 })(typeof exports !== "undefined" ? exports : this);

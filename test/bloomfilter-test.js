@@ -100,6 +100,20 @@ suite.addBatch({
       f.add(n1);
       assert.equal(f.test(n1), true);
       assert.equal(f.test(n2), false);
+    },
+
+    "serializing": function() {
+      var f = new StableBloomFilter(1024, 4, 10, {fps: 0.00001}),
+          n1 = "Bess";
+      f.add(n1);
+      assert.equal(f.test(n1), true);
+
+      var g = StableBloomFilter.prototype.unserialize(f.serialize());
+
+      assert.equal(g.test(n1), true);
+      assert.equal(g.m, 1024);
+      assert.equal(g.d, 10);
+      assert.equal(g.k, 4);
     }
   }
 });
