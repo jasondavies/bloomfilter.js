@@ -141,6 +141,10 @@
     this.k = k;
     this.d = d;
 
+    if(typeof ArrayBuffer === 'undefined') {
+      throw new TypeError("Need ArrayBuffer");
+    }
+
     if(typeof opts.p === 'undefined') {
       if(typeof opts.fps === 'undefined') {
         throw new TypeError("One of `p` or `fps` must be specified.");
@@ -162,6 +166,10 @@
     }
 
     this.buffer = new ArrayBuffer(m * d / 8);
+
+    if(typeof this.buffer.slice === 'undefined') {
+      throw new TypeError("Your ArrayBuffer lacks slice()");
+    }
   }
 
   StableBloomFilter.prototype._slice = function(cellIndex) {
