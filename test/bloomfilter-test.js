@@ -83,7 +83,7 @@ suite.addBatch({
     },
 
     "basic": function() {
-      var f = new StableBloomFilter(1024, 4, 10, {fps: 0.00001}),
+      var f = new StableBloomFilter(1024, 4, 8, {fps: 0.00001}),
           n1 = "Bess",
           n2 = "Jane";
       f.add(n1);
@@ -92,8 +92,99 @@ suite.addBatch({
       assert.equal(f.test(n2), false);
     },
 
+    "bit alignment": function() {
+      var f = new StableBloomFilter(1024, 4, 3, {fps: 0.00001});
+
+      /* Cell #933 when there are three bits per cell is an edge case
+       *
+       *              +------+------+------+------+------+------+------+------+------+------+------+------+
+       * bit numbers  | 2798 | 2799 | 2800 | 2801 | 2802 | 2803 | 2804 | 2805 | 2806 | 2807 | 2808 | 2809 |
+       *              +------+------+------+------+------+------+------+------+------+------+------+------+
+       * byte numbers | 349         | 350                                                   | 351         |
+       *              +------+------+------+------+------+------+------+------+------+------+------+------+
+       * cell number  | 932  | 933                | 934                | 935                | 936         |
+       *              +------+------+------+------+------+------+------+------+------+------+------+------+
+       * 
+       * This tests that the calculation for how many leading bits in the prior byte included when we slice on the byte line
+       * i.e. bytes 349 and 350. For Cell #933, there are seven extra bits preceding and six bits following.
+       */
+      var cellPositioning = f._slice(933);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 349);
+      assert.equal(cellPositioning.cellSliceEndIdx, 351);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 7);
+      assert.equal(cellPositioning.bitsAfterThisCell, 6);
+
+      cellPositioning = f._slice(0);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 1);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 5);
+
+      cellPositioning = f._slice(1);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 1);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 3);
+      assert.equal(cellPositioning.bitsAfterThisCell, 2);
+
+      cellPositioning = f._slice(2);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 2);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 6);
+      assert.equal(cellPositioning.bitsAfterThisCell, 7);
+
+      cellPositioning = f._slice(8);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 3);
+      assert.equal(cellPositioning.cellSliceEndIdx, 4);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 5);
+
+      var g = new StableBloomFilter(1024, 4, 8, {fps: 0.00001});
+      cellPositioning = g._slice(0);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 1);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 0);
+
+      cellPositioning = g._slice(1);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 1);
+      assert.equal(cellPositioning.cellSliceEndIdx, 2);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 0);
+
+      cellPositioning = g._slice(8);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 8);
+      assert.equal(cellPositioning.cellSliceEndIdx, 9);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 0);
+
+      var h = new StableBloomFilter(1024, 4, 4, {fps: 0.00001});
+      cellPositioning = h._slice(0);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 1);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 4);
+
+      cellPositioning = h._slice(1);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 0);
+      assert.equal(cellPositioning.cellSliceEndIdx, 1);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 4);
+      assert.equal(cellPositioning.bitsAfterThisCell, 0);
+
+      cellPositioning = h._slice(2);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 1);
+      assert.equal(cellPositioning.cellSliceEndIdx, 2);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 0);
+      assert.equal(cellPositioning.bitsAfterThisCell, 4);
+
+      cellPositioning = h._slice(3);
+      assert.equal(cellPositioning.cellSliceBeginIdx, 1);
+      assert.equal(cellPositioning.cellSliceEndIdx, 2);
+      assert.equal(cellPositioning.bitsBeforeThisCell, 4);
+      assert.equal(cellPositioning.bitsAfterThisCell, 0);
+    },
+
     "purging": function() {
-      var f = new StableBloomFilter(1024, 4, 10, {fps: 0}),
+      var f = new StableBloomFilter(1024, 4, 8, {fps: 0}),
           n1 = "Bess",
           n2 = "Jane";
 
@@ -103,7 +194,7 @@ suite.addBatch({
     },
 
     "serializing": function() {
-      var f = new StableBloomFilter(1024, 4, 10, {fps: 0.00001}),
+      var f = new StableBloomFilter(1024, 4, 8, {fps: 0.00001}),
           n1 = "Bess";
       f.add(n1);
       assert.equal(f.test(n1), true);
@@ -112,7 +203,7 @@ suite.addBatch({
 
       assert.equal(g.test(n1), true);
       assert.equal(g.m, 1024);
-      assert.equal(g.d, 10);
+      assert.equal(g.d, 8);
       assert.equal(g.k, 4);
     }
   }

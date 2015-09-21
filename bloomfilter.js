@@ -185,23 +185,25 @@
     var cellSliceBeginIdx = Math.floor(cellIndex     * this.d / 8),
       cellSliceEndIdx =     Math.floor((cellIndex+1) * this.d / 8);
 
-    var cellBytes = this.buffer.slice(cellSliceBeginIdx, cellSliceEndIdx+1);
+    if((cellIndex+1) * this.d % 8 !== 0) {
+      cellSliceEndIdx += 1;
+    }
+
+    var cellBytes = this.buffer.slice(cellSliceBeginIdx, cellSliceEndIdx);
 
     // Byte alignment calculation
     var bitsBeforeThisCell = 0,
         bitsAfterThisCell = 0;
 
-    if(cellIndex !== 0) {
-      // The 0th cell is always zero-aligned, but after that we could be misaligned.
-      var previousByteLine = cellSliceBeginIdx*8,
-          nextByteLine     = cellSliceEndIdx*8;
-
-      bitsBeforeThisCell = cellIndex * this.d - previousByteLine;
-      bitsAfterThisCell = nextByteLine - (cellIndex+1) * this.d;
-    }
+    // We could be misaligned, i.e. the cell does not start cleanly on a byte
+    // or end cleanly on a byte. If so, calculate the number of leading bits and trailing bits that we are including in the slice indices 
+    // that are NOT in this cell. 
+    bitsBeforeThisCell = cellIndex * this.d % 8,
+    bitsAfterThisCell = cellSliceEndIdx*8 - ((cellIndex + 1) * this.d);
 
     return {
       cellSliceBeginIdx: cellSliceBeginIdx,
+      cellSliceEndIdx: cellSliceEndIdx,
       bitsBeforeThisCell: bitsBeforeThisCell,
       bitsAfterThisCell: bitsAfterThisCell,
       cellBytes: cellBytes
@@ -233,12 +235,12 @@
 
         if(j === 0) {
           // For the first byte, if we aren't byte-aligned at the beginning then we don't raise the first few bits
-          raisedByte >> cellPositioning.bitsBeforeThisCell;
+          raisedByte = raisedByte >> cellPositioning.bitsBeforeThisCell;
         }
 
         if(j === cellBytes.length - 1) {
           // For the last byte, if we aren't byte-aligned at the end then we don't raise the last few bits.
-          raisedByte << cellPositioning.bitsAfterThisCell;
+          raisedByte = raisedByte & (255 << cellPositioning.bitsAfterThisCell);
         }
 
         cellBytes[j] |= raisedByte;
