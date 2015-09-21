@@ -106,6 +106,27 @@ suite.addBatch({
 
       assert.equal(f.hammingWeight(), 8);
     },
+    
+    "calculating fraction zeroes": function() {
+      var f = new StableBloomFilter(4, 1, 8, {fps: 0.00001});
+
+      var buffer = f.buffer,
+        bufferView = new Uint8Array(buffer);
+
+      assert.equal(f.fractionZeroes(), 1);
+
+      bufferView[0] = 255;
+      assert.equal(f.fractionZeroes(), 0.75);
+
+      bufferView[1] = 255;
+      assert.equal(f.fractionZeroes(), 0.5);
+
+      bufferView[2] = 255;
+      assert.equal(f.fractionZeroes(), 0.25);
+
+      bufferView[3] = 255;
+      assert.equal(f.fractionZeroes(), 0);
+    },
 
     "bit alignment": function() {
       var f = new StableBloomFilter(1024, 4, 3, {fps: 0.00001});
