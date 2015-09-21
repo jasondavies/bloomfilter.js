@@ -79,7 +79,6 @@ suite.addBatch({
 
       f = new StableBloomFilter(1024, 4, 4, {fps: 1});
       assert.equal(f.p, 0);
-
     },
 
     "basic": function() {
@@ -108,7 +107,7 @@ suite.addBatch({
     },
     
     "calculating fraction zeroes": function() {
-      var f = new StableBloomFilter(4, 1, 8, {fps: 0.00001});
+      var f = new StableBloomFilter(32, 1, 8, {fps: 0.00001});
 
       var buffer = f.buffer,
         bufferView = new Uint8Array(buffer);
@@ -116,16 +115,17 @@ suite.addBatch({
       assert.equal(f.fractionZeroes(), 1);
 
       bufferView[0] = 255;
-      assert.equal(f.fractionZeroes(), 0.75);
+      assert.equal(f.fractionZeroes(), 31/32);
 
       bufferView[1] = 255;
-      assert.equal(f.fractionZeroes(), 0.5);
+      assert.equal(f.fractionZeroes(), 30/32);
 
       bufferView[2] = 255;
-      assert.equal(f.fractionZeroes(), 0.25);
+      assert.equal(f.fractionZeroes(), 29/32);
 
       bufferView[3] = 255;
-      assert.equal(f.fractionZeroes(), 0);
+      assert.equal(f.fractionZeroes(), 28/32);
+
     },
 
     "bit alignment": function() {
