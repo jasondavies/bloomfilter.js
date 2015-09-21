@@ -236,7 +236,7 @@
           raisedByte >> cellPositioning.bitsBeforeThisCell;
         }
 
-        if(j === cellBytes.length) {
+        if(j === cellBytes.length - 1) {
           // For the last byte, if we aren't byte-aligned at the end then we don't raise the last few bits.
           raisedByte << cellPositioning.bitsAfterThisCell;
         }
