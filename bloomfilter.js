@@ -77,6 +77,7 @@
     return -this.m * Math.log(1 - bits / this.m) / this.k;
   };
 
+  // Calculate hamming weight for a byte i.e. the number of bits set to 1
   // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
   function popcnt(v) {
     v -= (v >> 1) & 0x55555555;
@@ -365,5 +366,15 @@
 
     return filter;
   };
+
+  StableBloomFilter.prototype.hammingWeight = function() {
+    var total = 0;
+    var arrayView = new Uint8Array(this.buffer);
+    for(var i = 0; i < arrayView.length; i++) {
+      total += popcnt(arrayView[i]);
+    }
+    return total;
+  };
+
 
 })(typeof exports !== "undefined" ? exports : this);

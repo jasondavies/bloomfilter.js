@@ -92,6 +92,21 @@ suite.addBatch({
       assert.equal(f.test(n2), false);
     },
 
+    "counting number of bits set": function() {
+      var f = new StableBloomFilter(1024, 4, 8, {fps: 0.00001});
+
+      var buffer = f.buffer,
+        bufferView = new Uint8Array(buffer);
+
+      /* Manually set the first byte to 255, i.e. all ones, so the bit count should be 8 */
+
+      assert.equal(f.hammingWeight(), 0);
+
+      bufferView[0] = 255;
+
+      assert.equal(f.hammingWeight(), 8);
+    },
+
     "bit alignment": function() {
       var f = new StableBloomFilter(1024, 4, 3, {fps: 0.00001});
 
