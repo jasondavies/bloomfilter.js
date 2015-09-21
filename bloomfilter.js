@@ -377,7 +377,7 @@
   };
 
   StableBloomFilter.prototype.fractionZeroes = function() {
-    return 1 - (this.hammingWeight() / (this.m * this.d / 8));
+    return 1 - (this.hammingWeight() / (this.m * this.d));
   };
 
 })(typeof exports !== "undefined" ? exports : this);
