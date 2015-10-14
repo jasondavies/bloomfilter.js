@@ -1,15 +1,20 @@
-Bloom Filter
-============
+Stable Bloom Filter
+===================
 
-This JavaScript bloom filter implementation uses the non-cryptographic
-[Fowler–Noll–Vo hash function][1] for speed.
+This is an implementation of the stable bloom filter as described in [Deng and Rafiei (2006)](http://webdocs.cs.ualberta.ca/~drafiei/papers/DupDet06Sigmod.pdf). A stable bloom filter maintains a constant fraction of high bits by unsetting random bits after each insertion. This is useful for potentially infinite data sets, where a normal bloom filter would progressively "fill up". 
+
+![http://i.imgur.com/JFkABNJ.png](http://i.imgur.com/JFkABNJ.png)
+
+In the graph above, `P` represents the number of random cells purged after each iteration. When `P=0`, it's equivalent to a normal bloom filter. After a while, all of the bits are raised, making the bloom filter useless. With `P>0`, some elements are purged after each insertion. 
 
 Usage
 -----
 
-    var bloom = new BloomFilter(
-      32 * 256, // number of bits to allocate.
-      16        // number of hash functions.
+    var bloom = new StableBloomFilter(
+      32 * 1024,  // number of cells to allocate.
+      4,          // number of hash functions.
+      8,          // number of bits per cell
+      {fps: 0.01} // false positive rate (in this case, 1%)
     );
 
     // Add some elements to the filter.
@@ -23,26 +28,8 @@ Usage
     bloom.test("bar");
     bloom.test("blah");
 
-    // Serialisation. Note that bloom.buckets may be a typed array,
-    // so we convert to a normal array first.
-    var array = [].slice.call(bloom.buckets),
-        json = JSON.stringify(array);
+    // Serialization. 
+    localStorage["bloom"] = bloom.serialize();
 
-    // Deserialisation. Note that the any array-like object is supported, but
-    // this will be used directly, so you may wish to use a typed array for
-    // performance.
-    var bloom = new BloomFilter(array, 3);
-
-Implementation
---------------
-
-Although the bloom filter requires *k* hash functions, we can simulate this
-using only *two* hash functions.  In fact, we cheat and get the second hash
-function almost for free by iterating once more on the first hash using the FNV
-hash algorithm.
-
-Thanks to Will Fitzgerald for his [help and inspiration][2] with the hashing
-optimisation.
-
-[1]: http://isthe.com/chongo/tech/comp/fnv/
-[2]: http://willwhim.wordpress.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
+    // Unserialization. 
+    var bloom = StableBloomFilter.prototype.unserialize(localStorage["bloom"]);
