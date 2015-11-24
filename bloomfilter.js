@@ -1,4 +1,12 @@
-(function(exports) {
+(function (global, factory) {
+  if (typeof exports === "object" && exports) {
+    factory(exports); // CommonJS
+  } else if (typeof define === "function" && define.amd) {
+    define(['exports'], factory); // AMD
+  } else {
+    factory(global); // <script>
+  }
+}(this, function(exports) {
   exports.BloomFilter = BloomFilter;
   exports.fnv_1a = fnv_1a;
   exports.fnv_1a_b = fnv_1a_b;
@@ -115,4 +123,4 @@
     a += a << 5;
     return a & 0xffffffff;
   }
-})(typeof exports !== "undefined" ? exports : this);
+}));
