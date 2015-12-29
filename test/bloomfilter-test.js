@@ -55,6 +55,15 @@ suite.addBatch({
       assert.inDelta(f.size(), 99.953102, 1e-6);
       for (var i = 0; i < 1000; ++i) f.add(i);
       assert.inDelta(f.size(), 950.424571, 1e-6);
+    },
+    "serialization": function () {
+      var start = new BloomFilter(1000, 4);
+      start.add(1);
+      var end = BloomFilter.deserialize(start.serialize());
+
+      assert.equal(end.m, start.m);
+      assert.equal(end.k, start.k);
+      assert.deepEqual(end.buckets, start.buckets);
     }
   }
 });
