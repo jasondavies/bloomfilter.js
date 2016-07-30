@@ -32,7 +32,7 @@ var array = [].slice.call(bloom.buckets),
 // Deserialisation. Note that the any array-like object is supported, but
 // this will be used directly, so you may wish to use a typed array for
 // performance.
-var bloom = new BloomFilter(array, 3);
+var bloom = new BloomFilter(array, 16);
 ```
 
 Implementation
