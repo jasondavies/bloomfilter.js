@@ -1,5 +1,5 @@
 {
-  "name": "bloomfilter",
+  "name": "@mcph/bloomfilter",
   "version": "0.0.16",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
@@ -7,7 +7,7 @@
     "probabilistic data structure"
   ],
   "homepage": "https://github.com/jasondavies/bloomfilter.js",
-  "author": {
+  "authors": {
     "name": "Jason Davies",
     "url": "http://www.jasondavies.com/"
   },
@@ -16,7 +16,9 @@
     "url": "http://github.com/jasondavies/bloomfilter.js.git"
   },
   "main": "bloomfilter.js",
+  "typings": "bloomfilter.d.ts",
   "devDependencies": {
+    "@types/node": "^7.0.22",
     "vows": "0.7.0"
   },
   "scripts": {

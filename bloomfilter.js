@@ -77,6 +77,34 @@
     return -this.m * Math.log(1 - bits / this.m) / this.k;
   };
 
+  // Turns the bloom filter into a buffer for later storage.
+  BloomFilter.prototype.serialize = function() {
+    // The format is the number of hashes as a uint16, followed by the buckets
+    // data as big endian int32's
+    var bucketLen = this.buckets.length,
+      target = new Buffer((bucketLen << 2) + 2);
+    target.writeUInt16BE(this.k, 0);
+
+    for (var i = 0; i < bucketLen; ++i) {
+      target.writeInt32BE(this.buckets[i], (i << 2) + 2);
+    }
+
+    return target;
+  };
+
+  // Parses a buffer created by a previous call to .serialize into a BloomFilter
+  BloomFilter.deserialize = function(data) {
+    var hashes = data.readUInt16BE(0),
+      count = (data.length - 2) >> 2,
+      buckets = typedArrays ? new Int32Array(count) : new Array(count);
+
+    for (var i = 0; i < count; ++i) {
+      buckets[i] = data.readInt32BE((i << 2) + 2);
+    }
+
+    return new BloomFilter(buckets, hashes);
+  };
+
   // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
   function popcnt(v) {
     v -= (v >> 1) & 0x55555555;
