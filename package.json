@@ -6,14 +6,14 @@
     "bloom filter",
     "probabilistic data structure"
   ],
-  "homepage": "https://github.com/WatchBeam/bloomfilter.js",
+  "homepage": "https://github.com/mixer/bloomfilter.js",
   "authors": {
     "name": "Jason Davies",
     "url": "http://www.jasondavies.com/"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/WatchBeam/bloomfilter.js.git"
+    "url": "http://github.com/mixer/bloomfilter.js.git"
   },
   "main": "bloomfilter.js",
   "typings": "bloomfilter.d.ts",
