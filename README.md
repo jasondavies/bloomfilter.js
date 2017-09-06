@@ -23,12 +23,12 @@ Usage
     bloom.test("bar");
     bloom.test("blah");
 
-    // Serialisation. Note that bloom.buckets may be a typed array,
+    // Serialization. Note that bloom.buckets may be a typed array,
     // so we convert to a normal array first.
     var array = [].slice.call(bloom.buckets),
         json = JSON.stringify(array);
 
-    // Deserialisation. Note that the any array-like object is supported, but
+    // Deserialization. Note that the any array-like object is supported, but
     // this will be used directly, so you may wish to use a typed array for
     // performance.
     var bloom = new BloomFilter(array, 3);
