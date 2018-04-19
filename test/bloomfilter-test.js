@@ -1,7 +1,6 @@
 var bf = require("../bloomfilter"),
     BloomFilter = bf.BloomFilter,
-    fnv_1a = bf.fnv_1a,
-    fnv_1a_b = bf.fnv_1a_b;
+    fnv_1a = bf.fnv_1a;
 
 var vows = require("vows"),
     assert = require("assert");
@@ -52,9 +51,9 @@ suite.addBatch({
     "size": function() {
       var f = new BloomFilter(1000, 4), i = -1;
       for (var i = 0; i < 100; ++i) f.add(i);
-      assert.inDelta(f.size(), 99.953102, 1e-6);
+      assert.inDelta(f.size(), 100, 6);
       for (var i = 0; i < 1000; ++i) f.add(i);
-      assert.inDelta(f.size(), 950.424571, 1e-6);
+      assert.inDelta(f.size(), 1000, 100);
     }
   }
 });
