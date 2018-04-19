@@ -37,9 +37,8 @@ Implementation
 --------------
 
 Although the bloom filter requires *k* hash functions, we can simulate this
-using only *two* hash functions.  In fact, we cheat and get the second hash
-function almost for free by iterating once more on the first hash using the FNV
-hash algorithm.
+using only *two* hash functions.  In fact, we can use the same FNV algorithm
+for both hash functions, using only different base offsets for the two hashes.
 
 Thanks to Will Fitzgerald for his [help and inspiration][2] with the hashing
 optimisation.
