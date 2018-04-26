@@ -1,6 +1,7 @@
 {
   "name": "bloomfilter",
-  "version": "0.0.17",
+  "version": "0.0.18",
+  "license" : "BSD-3-Clause",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
     "bloom filter",
