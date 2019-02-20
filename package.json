@@ -1,5 +1,5 @@
 {
-  "name": "@mcph/bloomfilter",
+  "name": "@mixer/bloomfilter",
   "version": "0.1.1",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
