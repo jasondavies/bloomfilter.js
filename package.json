@@ -1,5 +1,5 @@
 {
-  "name": "@mcph/bloomfilter",
+  "name": "@mixer/bloomfilter",
   "version": "0.1.1",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
@@ -23,5 +23,8 @@
   },
   "scripts": {
     "test": "./node_modules/vows/bin/vows"
+  },
+  "publishConfig": {
+    "registry": "https://watchmixer.pkgs.visualstudio.com/_packaging/mixer/npm/registry/"
   }
 }
