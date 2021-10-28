@@ -33,6 +33,22 @@
     }
   }
 
+  BloomFilter.fromBuffer = function(buffer, k) {
+    var filter = new BloomFilter(buffer.length * 8, k)
+    for (let i = 0; i < filter.buckets.length; ++i) {
+      filter.buckets[i] = buffer.readIntLE(i*4, 4)
+    }
+    return filter
+  }
+
+  BloomFilter.prototype.toBuffer = function() {
+    return Buffer.from(this.buckets.buffer)
+  }
+
+  BloomFilter.prototype.equal = function(that) {
+    return Buffer.compare(this.toBuffer(), that.toBuffer()) === 0
+  }
+
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
@@ -84,7 +100,7 @@
     for (var i = 0, n = buckets.length; i < n; ++i) bits += popcnt(buckets[i]);
     return bits;
   };
-  
+
   // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
   function popcnt(v) {
     v -= (v >> 1) & 0x55555555;

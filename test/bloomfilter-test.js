@@ -78,6 +78,15 @@ suite.addBatch({
       for (; i < 4096*2; ++i) f.add(init+i);
       assert.inDelta(f.rate(), 1, 0.99);
     },
+    "buffer": function() {
+      var k = 3
+      var f = new BloomFilter(4096, k);
+      for (var i = 0; i < 256; ++i) f.add(i);
+      var b = BloomFilter.fromBuffer(f.toBuffer(), k)
+      assert(b.equal(f))
+      b.add(4096)
+      assert(!b.equal(f))
+    }
   }
 });
 
