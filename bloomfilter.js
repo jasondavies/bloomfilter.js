@@ -52,7 +52,7 @@
     var l = this.locations(v + ""),
         k = this.k,
         buckets = this.buckets;
-    for (var i = 0; i < k; ++i) buckets[Math.floor(l[i] / 32)] |= 1 << (l[i] % 32);
+    for (var i = 0; i < k; ++i) buckets[l[i] >> 5] |= 1 << (l[i] % 32);
   };
 
   BloomFilter.prototype.test = function(v) {
@@ -61,7 +61,7 @@
         buckets = this.buckets;
     for (var i = 0; i < k; ++i) {
       var b = l[i];
-      if ((buckets[Math.floor(b / 32)] & (1 << (b % 32))) === 0) {
+      if ((buckets[b >> 5] & (1 << (b % 32))) === 0) {
         return false;
       }
     }
