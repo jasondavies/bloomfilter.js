@@ -54,7 +54,30 @@ suite.addBatch({
       assert.inDelta(f.size(), 100, 6);
       for (var i = 0; i < 1000; ++i) f.add(i);
       assert.inDelta(f.size(), 1000, 100);
-    }
+    },
+    "rate": function() {
+      var f = new BloomFilter(4096, 3), i = 0;
+      var init = 123456;
+      assert.equal(f.rate(), 0);
+      for (; i < 32; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.00002, 0.00001);
+      for (; i < 64; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.0001, 0.00009);
+      for (; i < 128; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.0008, 0.0007);
+      for (; i < 256; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.006, 0.005);
+      for (; i < 512; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.032, 0.031);
+      for (; i < 1024; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.15, 0.14);
+      for (; i < 2048; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.47, 0.46);
+      for (; i < 4096; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 0.86, 0.85);
+      for (; i < 4096*2; ++i) f.add(init+i);
+      assert.inDelta(f.rate(), 1, 0.99);
+    },
   }
 });
 
