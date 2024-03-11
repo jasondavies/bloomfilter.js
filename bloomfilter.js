@@ -33,6 +33,22 @@
     }
   }
 
+  BloomFilter.fromBuffer = function(buffer, k) {
+    var filter = new BloomFilter(buffer.length * 8, k)
+    for (let i = 0; i < filter.buckets.length; ++i) {
+      filter.buckets[i] = buffer.readIntLE(i*4, 4)
+    }
+    return filter
+  }
+
+  BloomFilter.prototype.toBuffer = function() {
+    return Buffer.from(this.buckets.buffer)
+  }
+
+  BloomFilter.prototype.equal = function(that) {
+    return Buffer.compare(this.toBuffer(), that.toBuffer()) === 0
+  }
+
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
@@ -70,10 +86,19 @@
 
   // Estimated cardinality.
   BloomFilter.prototype.size = function() {
-    var buckets = this.buckets,
+    return -this.m * Math.log(1 - this.bits() / this.m) / this.k;
+  };
+
+  // Estimated false-positive rate.
+  BloomFilter.prototype.rate = function() {
+    return Math.pow(this.bits() / this.m, this.k)
+  };
+
+  BloomFilter.prototype.bits = function() {
+    var buckets = this.buckets
         bits = 0;
     for (var i = 0, n = buckets.length; i < n; ++i) bits += popcnt(buckets[i]);
-    return -this.m * Math.log(1 - bits / this.m) / this.k;
+    return bits;
   };
 
   // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
