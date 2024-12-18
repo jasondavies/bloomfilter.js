@@ -54,6 +54,52 @@ suite.addBatch({
       assert.inDelta(f.size(), 100, 6);
       for (var i = 0; i < 1000; ++i) f.add(i);
       assert.inDelta(f.size(), 1000, 100);
+    },
+    "countBits": function() {
+      var f = new BloomFilter(1024, 4);
+      f.add(0);
+      assert.equal(f.countBits(), 4);
+    },
+    "withTargetError/error": function() {
+      const f = BloomFilter.withTargetError(100, 1e-5);
+      for (let i = 0; i < 100; ++i) {
+        f.add(i);
+      }
+      assert.inDelta(f.error(), 1e-5, 1e-5);
+    },
+    "union": function() {
+      const f0 = BloomFilter.withTargetError(100, 1e-5);
+      const f1 = BloomFilter.withTargetError(100, 1e-5);
+      for (let i = 0; i < 100; ++i) {
+        f0.add(i);
+      }
+      for (let i = 0; i < 100; ++i) {
+        f1.add(100 + i);
+      }
+      const f2 = BloomFilter.union(f0, f1);
+      for (let i = 0; i < 200; ++i) {
+        assert.equal(f2.test(i), true);
+      }
+    },
+    "intersection": function() {
+      const f0 = BloomFilter.withTargetError(100, 1e-5);
+      const f1 = BloomFilter.withTargetError(100, 1e-5);
+      for (let i = 0; i < 200; ++i) {
+        if (i < 100) {
+          f0.add(i);
+        }
+        if (i === 100) {
+          f0.add(i);
+          f1.add(i);
+        }
+        if (i > 100) {
+          f1.add(i);
+        }
+      }
+      const f2 = BloomFilter.intersection(f0, f1);
+      for (let i = 0; i < 200; ++i) {
+        assert.equal(f2.test(i), i === 100);
+      }
     }
   }
 });

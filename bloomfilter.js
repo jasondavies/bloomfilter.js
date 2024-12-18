@@ -121,13 +121,45 @@
 
   // Estimated cardinality.
   BloomFilter.prototype.size = function() {
+    return -this.m * Math.log(1 - this.countBits() / this.m) / this.k;
+  };
+
+  BloomFilter.prototype.countBits = function() {
     const buckets = this.buckets;
     let bits = 0;
     for (let i = 0; i < buckets.length; ++i) {
       bits += popcnt(buckets[i]);
     }
-    return -this.m * Math.log(1 - bits / this.m) / this.k;
+    return bits;
   };
+
+  BloomFilter.prototype.error = function() {
+    return Math.pow(this.countBits() / this.m, this.k);
+  };
+
+  BloomFilter.union = function(a, b) {
+    if (a.m === b.m && a.k === b.k) {
+      const l = a.m >> 5;
+      const c = typedArrays ? new Int32Array(l) : new Array(l);
+      for (let i = 0; i < l; ++i) {
+        c[i] = a.buckets[i] | b.buckets[i];
+      }
+      return new BloomFilter(c, a.k);
+    }
+    throw new Error("Bloom filters must have identical {m, k}.");
+  }
+
+  BloomFilter.intersection = function(a, b) {
+    if (a.m === b.m && a.k === b.k) {
+      const l = a.m >> 5;
+      const c = typedArrays ? new Int32Array(l) : new Array(l);
+      for (let i = 0; i < l; ++i) {
+        c[i] = a.buckets[i] & b.buckets[i];
+      }
+      return new BloomFilter(c, a.k);
+    }
+    throw new Error("Bloom filters must have identical {m, k}.");
+  }
 
   BloomFilter.withTargetError = function(n, error) {
     const m = Math.ceil(-n * Math.log2(error) / Math.LN2);
