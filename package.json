@@ -18,7 +18,7 @@
   },
   "main": "bloomfilter.js",
   "devDependencies": {
-    "vows": "0.7.0"
+    "vows": "0.8.3"
   },
   "scripts": {
     "test": "./node_modules/vows/bin/vows"
