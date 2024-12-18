@@ -129,6 +129,12 @@
     return -this.m * Math.log(1 - bits / this.m) / this.k;
   };
 
+  BloomFilter.withTargetError = function(n, error) {
+    const m = Math.ceil(-n * Math.log2(error) / Math.LN2);
+    const k = Math.ceil(Math.LN2 * m / n);
+    return new BloomFilter(m, k);
+  };
+
   // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
   function popcnt(v) {
     v -= (v >> 1) & 0x55555555;
