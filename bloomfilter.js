@@ -21,7 +21,7 @@
     this.k = k;
 
     if (typedArrays) {
-      const kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2);
+      const kbytes = 1 << Math.ceil(Math.log2(Math.ceil(Math.log2(m) / 8)));
       const array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array;
       const kbuffer = new ArrayBuffer(kbytes * k);
       const buckets = new Int32Array(n);
