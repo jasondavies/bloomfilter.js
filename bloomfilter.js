@@ -53,8 +53,8 @@
     const k = this.k;
     const m = this.m;
     const r = this._locations;
-    let x;
-    let y;
+    let a;
+    let b;
 
     // FNV-1a hash (64-bit).
     {
@@ -75,21 +75,24 @@
         v2 = t2 & 0xffff;
       }
 
-      x = (v3 << 16) | v2;
-      y = (v1 << 16) | v0;
+      a = (v3 << 16) | v2;
+      b = (v1 << 16) | v0;
     }
 
-    x = (x % m);
-    if (x < 0) x += m;
-    y = (y % m);
-    if (y < 0) y += m;
+    a = (a % m);
+    if (a < 0) a += m;
+    b = (b % m);
+    if (b < 0) b += m;
 
-    // Force y to be odd to avoid catastrophic collisions where y is zero or divides m exactly (assuming m is a power of two).
-    y |= 1;
-    for (let i = 0; i < k; ++i) {
-      r[i] = x;
-      x = (x + y) % m;
-      y = (y + i + 1) % m;
+    // Use enhanced double hashing, i.e. r[i] = h1(v) + i*h2(v) + (i*i*i - i)/6
+    // Reference:
+    //   Dillinger, Peter C., and Panagiotis Manolios. "Bloom filters in probabilistic verification."
+    //   https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf
+    r[0] = a;
+    for (let i = 1; i < k; ++i) {
+      a = (a + b) % m;
+      b = (b + i) % m;
+      r[i] = a;
     }
     return r;
   };

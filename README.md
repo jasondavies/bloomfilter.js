@@ -39,9 +39,9 @@ Implementation
 --------------
 
 Although the bloom filter requires *k* hash functions, we can simulate this
-using double hashing with a single 64-bit FNV-1a hash computation for
+using enhanced double hashing with a single 64-bit FNV-1a hash computation for
 performance.  The 64-bit hash is split into two 32-bit halves to obtain the two
-independent hash functions required for double hashing.
+independent hash functions required for enhanced double hashing.
 
 Thanks to Will Fitzgerald for his [help and inspiration][2] with the hashing
 optimisation.
