@@ -1,6 +1,7 @@
 (function(exports) {
   exports.BloomFilter = BloomFilter;
   exports.fnv_1a = fnv_1a;
+  exports.fnv_1a_b = fnv_1a_b;
 
   var typedArrays = typeof ArrayBuffer !== "undefined";
 
@@ -39,11 +40,15 @@
         m = this.m,
         r = this._locations,
         a = fnv_1a(v),
-        b = fnv_1a(v, 1576284489), // The seed value is chosen randomly
-        x = a % m;
+        b = fnv_1a_b(a),
+        c = fnv_1a_b(b),
+        x = a % m,
+        y = (b % m) | 1,
+        z = c % m;
     for (var i = 0; i < k; ++i) {
-      r[i] = x < 0 ? (x + m) : x;
-      x = (x + b) % m;
+      r[i] = x;
+      x = (x + y) % m;
+      y = (y + z) % m;
     }
     return r;
   };
@@ -84,11 +89,8 @@
   }
 
   // Fowler/Noll/Vo hashing.
-  // Nonstandard variation: this function optionally takes a seed value that is incorporated
-  // into the offset basis. According to http://www.isthe.com/chongo/tech/comp/fnv/index.html
-  // "almost any offset_basis will serve so long as it is non-zero".
-  function fnv_1a(v, seed) {
-    var a = 2166136261 ^ (seed || 0);
+  function fnv_1a(v) {
+    var a = 2166136261;
     for (var i = 0, n = v.length; i < n; ++i) {
       var c = v.charCodeAt(i),
           d = c & 0xff00;
@@ -103,6 +105,11 @@
     return a + (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
   }
 
+  // One additional iteration of FNV, given a hash.
+  function fnv_1a_b(a) {
+    return fnv_mix(fnv_multiply(a));
+  }
+
   // See https://web.archive.org/web/20131019013225/http://home.comcast.net/~bretm/hash/6.html
   function fnv_mix(a) {
     a += a << 13;
@@ -110,6 +117,6 @@
     a += a << 3;
     a ^= a >>> 17;
     a += a << 5;
-    return a & 0xffffffff;
+    return a & 0x7fffffff;
   }
 })(typeof exports !== "undefined" ? exports : this);

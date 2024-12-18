@@ -1,6 +1,6 @@
 {
   "name": "bloomfilter",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "license" : "BSD-3-Clause",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
@@ -10,11 +10,11 @@
   "homepage": "https://github.com/jasondavies/bloomfilter.js",
   "author": {
     "name": "Jason Davies",
-    "url": "http://www.jasondavies.com/"
+    "url": "https://www.jasondavies.com/"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/jasondavies/bloomfilter.js.git"
+    "url": "https://github.com/jasondavies/bloomfilter.js.git"
   },
   "main": "bloomfilter.js",
   "devDependencies": {
