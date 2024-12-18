@@ -1,7 +1,7 @@
 {
   "name": "bloomfilter",
   "version": "0.0.19",
-  "license" : "BSD-3-Clause",
+  "license": "BSD-3-Clause",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
     "bloom filter",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jasondavies/bloomfilter.js.git"
+    "url": "git+https://github.com/jasondavies/bloomfilter.js.git"
   },
   "main": "bloomfilter.js",
   "devDependencies": {
