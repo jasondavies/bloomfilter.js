@@ -1,6 +1,5 @@
 (function(exports) {
   exports.BloomFilter = BloomFilter;
-  exports.fnv_1a = fnv_1a;
 
   const typedArrays = typeof ArrayBuffer !== "undefined";
 
@@ -54,15 +53,43 @@
     const k = this.k;
     const m = this.m;
     const r = this._locations;
-    const a = fnv_1a(v);
-    const b = fnv_1a_round(a);
-    const z = (fnv_1a_round(b) & 0x7fffffff) % m;
-    let x = (a & 0x7fffffff) % m;
-    let y = ((b & 0x7fffffff) % m) | 1;
+    let x;
+    let y;
+
+    // FNV-1a hash (64-bit).
+    {
+      const fnv64PrimeX = 0x01b3;
+      const l = v.length;
+      let t0 = 0, t1 = 0, t2 = 0, t3 = 0;
+      let v0 = 0x2325, v1 = 0x8422, v2 = 0x9ce4, v3 = 0xcbf2;
+
+      for (let i = 0; i < l; ++i) {
+        v0 ^= v.charCodeAt(i);
+        t0 = v0 * fnv64PrimeX; t1 = v1 * fnv64PrimeX; t2 = v2 * fnv64PrimeX; t3 = v3 * fnv64PrimeX;
+        t2 += v0 << 8; t3 += v1 << 8;
+        t1 += t0 >>> 16;
+        v0 = t0 & 0xffff;
+        t2 += t1 >>> 16;
+        v1 = t1 & 0xffff;
+        v3 = (t3 + (t2 >>> 16)) & 0xffff;
+        v2 = t2 & 0xffff;
+      }
+
+      x = (v3 << 16) | v2;
+      y = (v1 << 16) | v0;
+    }
+
+    x = (x % m);
+    if (x < 0) x += m;
+    y = (y % m);
+    if (y < 0) y += m;
+
+    // Force y to be odd to avoid catastrophic collisions where y is zero or divides m exactly (assuming m is a power of two).
+    y |= 1;
     for (let i = 0; i < k; ++i) {
       r[i] = x;
       x = (x + y) % m;
-      y = (y + z) % m;
+      y = (y + i + 1) % m;
     }
     return r;
   };
@@ -104,39 +131,5 @@
     v -= (v >> 1) & 0x55555555;
     v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
     return ((v + (v >> 4) & 0xf0f0f0f) * 0x1010101) >> 24;
-  }
-
-  // Fowler/Noll/Vo hashing.
-  function fnv_1a(v) {
-    let a = 2166136261;
-    for (let i = 0; i < v.length; ++i) {
-      const c = v.charCodeAt(i);
-      const d = c & 0xff00;
-      if (d) {
-        a = fnv_multiply(a ^ d >> 8);
-      }
-      a = fnv_multiply(a ^ c & 0xff);
-    }
-    return fnv_mix(a);
-  }
-
-  // a * 16777619 mod 2**32
-  function fnv_multiply(a) {
-    return a + (a << 1) + (a << 4) + (a << 7) + (a << 8) + (a << 24);
-  }
-
-  // One additional iteration of FNV, given a hash.
-  function fnv_1a_round(a) {
-    return fnv_mix(fnv_multiply(a));
-  }
-
-  // See https://web.archive.org/web/20131019013225/http://home.comcast.net/~bretm/hash/6.html
-  function fnv_mix(a) {
-    a += a << 13;
-    a ^= a >>> 7;
-    a += a << 3;
-    a ^= a >>> 17;
-    a += a << 5;
-    return a & 0xffffffff;
   }
 })(typeof exports !== "undefined" ? exports : this);

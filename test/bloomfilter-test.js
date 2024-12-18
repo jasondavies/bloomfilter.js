@@ -49,7 +49,7 @@ suite.addBatch({
       assert.equal(f.test(2), false);
     },
     "size": function() {
-      var f = new BloomFilter(1000, 4), i = -1;
+      var f = new BloomFilter(1024 * 1024, 4), i = -1;
       for (var i = 0; i < 100; ++i) f.add(i);
       assert.inDelta(f.size(), 100, 6);
       for (var i = 0; i < 1000; ++i) f.add(i);
