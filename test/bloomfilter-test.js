@@ -83,21 +83,79 @@ describe('bloom filter', () => {
     assert.throws(() => BloomFilter.withTargetError(100, 1), /error must be a finite number between 0 and 1, exclusive/);
   });
 
-  it('uses unsigned bucket indexes for high-bit locations', () => {
-    const location = 0x80000020;
-    const bucket = location >>> 5;
-    const fake = {
-      k: 1,
-      buckets: Object.create(null),
-      locations() {
-        return Uint32Array.of(location);
+  it('matches independent hash locations across bucket widths and large hash counts', () => {
+    const values = ['', 'Bess', 'café', '\u0100', '😀', '\ud800', '\udfff', 'x'.repeat(50_000)];
+    for (const m of [32, 96, 256, 288, 65536, 65568]) {
+      for (const k of [1, 7, 33, 65]) {
+        for (const value of values) {
+          const f = new BloomFilter(m, k);
+          const locations = referenceLocations(value, f.m, k);
+          assert.deepEqual(Array.from(f.locations(value)), locations);
+          const expected = new Uint32Array(f.buckets.length);
+          for (const location of locations) expected[location >>> 5] |= 1 << (location & 31);
+          f.add(value);
+          assert.deepEqual(f.buckets, expected);
+          assert.equal(f.test(value), true);
+          for (const candidate of [value + '!', 'missing']) {
+            const present = referenceLocations(candidate, f.m, k).every(location =>
+              (expected[location >>> 5] & (1 << (location & 31))) !== 0);
+            assert.equal(f.test(candidate), present);
+          }
+        }
       }
-    };
+    }
+  });
 
-    BloomFilter.prototype.add.call(fake, "x");
-    assert.equal(fake.buckets[bucket], 1);
-    assert.equal(fake.buckets[location >> 5], undefined);
-    assert.equal(BloomFilter.prototype.test.call(fake, "x"), true);
+  it('reads version-1 filters containing Unicode strings', () => {
+    // Saved by the original JavaScript implementation, before the loop changes.
+    const f = BloomFilter.fromJSON({
+      version: 1, m: 256, k: 4,
+      buckets: [3072, 2304, 4608, 4096, 4259840, 134217728, 0, 8196]
+    });
+    for (const value of ['café', '😀', '\ud800']) assert.equal(f.test(value), true);
+    const rebuilt = new BloomFilter(256, 4);
+    for (const value of ['café', '😀', '\ud800']) rebuilt.add(value);
+    assert.deepEqual(rebuilt.toJSON(), f.toJSON());
+  });
+
+  it('uses unsigned bucket indexes through the maximum bit size', () => {
+    let sawHighBit = false;
+    for (const m of [0x80000000, 0xffffffe0, 0x100000000]) {
+      // Sparse buckets exercise actual hashing/indexing without a giant allocation.
+      const f = { m, k: 17, buckets: Object.create(null) };
+      const expected = Object.create(null);
+      for (let i = 0; i < 10; ++i) {
+        const value = `edge:${i}`;
+        for (const location of referenceLocations(value, m, f.k)) {
+          sawHighBit ||= location >= 0x80000000;
+          expected[location >>> 5] |= 1 << (location & 31);
+        }
+        BloomFilter.prototype.add.call(f, value);
+        assert.equal(BloomFilter.prototype.test.call(f, value), true);
+      }
+      assert.deepEqual(f.buckets, expected);
+    }
+    assert.equal(sawHighBit, true);
+  });
+
+  it('stops at the first missing bit', () => {
+    let reads = 0;
+    const f = {
+      m: 1024, k: 17,
+      buckets: new Proxy({}, { get() { ++reads; return 0; } })
+    };
+    assert.equal(BloomFilter.prototype.test.call(f, 'missing'), false);
+    assert.equal(reads, 1);
+  });
+
+  it('retains bucket views when adding long strings', () => {
+    const f = new BloomFilter(1000, 4);
+    const buckets = f.buckets;
+    f.add('short');
+    f.add('x'.repeat(50_000));
+    assert.equal(f.buckets, buckets);
+    assert.equal(f.test('short'), true);
+    assert.equal(f.test('x'.repeat(50_000)), true);
   });
 
   it('combines filters without signed bucket-length overflow', () => {
@@ -113,6 +171,29 @@ describe('bloom filter', () => {
     assert.equal(union.buckets[0], 0b11);
     assert.equal(intersection.buckets[0], 0b00);
   });
+
+  for (const [operation, expected] of [
+    ['union', [0xffffffff, 0xffffffff, 0b0111]],
+    ['intersection', [0x80000000, 0x80000000, 0b0100]]
+  ]) {
+    it(`${operation} returns unsigned buckets independent of its inputs`, () => {
+      const left = new BloomFilter([0xffffffff, 0x80000000, 0b0101], 7);
+      const right = new BloomFilter([0x80000000, 0xffffffff, 0b0110], 7);
+      const beforeLeft = left.toJSON();
+      const beforeRight = right.toJSON();
+      const result = BloomFilter[operation](left, right);
+
+      assert.deepEqual(result.toJSON(), { version: 1, m: 96, k: 7, buckets: expected });
+      assert.notEqual(result.buckets.buffer, left.buckets.buffer);
+      assert.notEqual(result.buckets.buffer, right.buckets.buffer);
+      result.buckets.fill(0);
+      assert.deepEqual(left.toJSON(), beforeLeft);
+      assert.deepEqual(right.toJSON(), beforeRight);
+      left.buckets.fill(0xffffffff);
+      right.buckets.fill(0xffffffff);
+      assert.deepEqual(Array.from(result.buckets), [0, 0, 0]);
+    });
+  }
 
   it('size', () => {
     const f = new BloomFilter(1024 * 1024, 4);
@@ -176,3 +257,20 @@ describe('bloom filter', () => {
     }
   });
 });
+
+// Independent reference: BigInt arithmetic and the closed-form location formula,
+// rather than the implementation's split-word hash and recurrence.
+function referenceLocations(value, m, k) {
+  let hash = 0xcbf29ce484222325n;
+  for (let i = 0; i < value.length; ++i) {
+    hash = BigInt.asUintN(64, (hash ^ BigInt(value.charCodeAt(i))) * 0x100000001b3n);
+  }
+  const a = BigInt.asIntN(32, hash >> 32n);
+  const b = BigInt.asIntN(32, hash);
+  const modulus = BigInt(m);
+  return Array.from({ length: k }, (_, index) => {
+    const i = BigInt(index);
+    const location = (a + i * b + (i * i * i - i) / 6n) % modulus;
+    return Number((location + modulus) % modulus);
+  });
+}
