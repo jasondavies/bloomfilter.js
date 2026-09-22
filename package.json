@@ -1,6 +1,6 @@
 {
   "name": "bloomfilter",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "BSD-3-Clause",
   "description": "Fast bloom filter in JavaScript.",
   "keywords": [
@@ -19,7 +19,11 @@
   },
   "main": "bloomfilter.js",
   "exports": "./bloomfilter.js",
-  "files": ["bloomfilter.js", "benchmark.js", "benchmark-compare.js"],
+  "files": [
+    "bloomfilter.js",
+    "benchmark.js",
+    "benchmark-compare.js"
+  ],
   "scripts": {
     "benchmark": "node benchmark.js",
     "benchmark:compare": "node benchmark-compare.js",
