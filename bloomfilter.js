@@ -46,9 +46,9 @@ export class BloomFilter {
     const r = this._locations;
     let [a, b] = hash64(v);
 
-    a = (a % m);
+    a %= m;
     if (a < 0) a += m;
-    b = (b % m);
+    b %= m;
     if (b < 0) b += m;
 
     // Use enhanced double hashing, i.e. r[i] = h1(v) + i*h2(v) + (i*i*i - i)/6
@@ -73,9 +73,9 @@ export class BloomFilter {
     const m = this.m;
     let [a, b] = hash64(v);
 
-    a = (a % m);
+    a %= m;
     if (a < 0) a += m;
-    b = (b % m);
+    b %= m;
     if (b < 0) b += m;
 
     const buckets = this.buckets;
@@ -86,7 +86,7 @@ export class BloomFilter {
       a += b;
       if (a >= m) a -= m;
       b += i;
-      // For i < m, the normalized sum is below 2m.
+      // For i < m, the normalised sum is below 2m.
       if (b >= m) b = i < m ? b - m : b % m;
     }
   }
@@ -98,9 +98,9 @@ export class BloomFilter {
     const m = this.m;
     let [a, b] = hash64(v);
 
-    a = (a % m);
+    a %= m;
     if (a < 0) a += m;
-    b = (b % m);
+    b %= m;
     if (b < 0) b += m;
 
     const buckets = this.buckets;
@@ -111,7 +111,7 @@ export class BloomFilter {
       a += b;
       if (a >= m) a -= m;
       b += i;
-      // For i < m, the normalized sum is below 2m.
+      // For i < m, the normalised sum is below 2m.
       if (b >= m) b = i < m ? b - m : b % m;
     }
     return true;
@@ -154,6 +154,7 @@ export class BloomFilter {
       throw new RangeError(`Unsupported BloomFilter serialisation format version: ${data.version}.`);
     }
 
+    assertBucketArrayLike(data.buckets);
     const expectedM = data.buckets.length * 32;
     if (data.m !== undefined && data.m !== expectedM) {
       throw new RangeError("Serialised BloomFilter has inconsistent m and buckets.");
@@ -188,14 +189,14 @@ export class BloomFilter {
     throw new Error("Bloom filters must have identical {m, k}.");
   }
 
-  static withTargetError (n, error) {
+  static withTargetError(n, error) {
     assertExpectedSize(n);
     assertTargetError(error);
     const m = Math.ceil(-n * Math.log2(error) / Math.LN2);
     const k = Math.ceil(Math.LN2 * m / n);
     return new BloomFilter(m, k);
   }
-};
+}
 
 // FNV-1a over UTF-16 code units, preserving version-1 serialisation.
 function hash64(v) {

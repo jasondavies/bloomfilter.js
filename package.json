@@ -25,7 +25,7 @@
     "benchmark-compare.js"
   ],
   "scripts": {
-    "benchmark": "node benchmark.js",
+    "benchmark": "node --expose-gc benchmark.js",
     "benchmark:compare": "node benchmark-compare.js",
     "test": "node --test"
   },

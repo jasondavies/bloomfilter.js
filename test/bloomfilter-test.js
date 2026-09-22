@@ -24,7 +24,7 @@ describe('bloom filter', () => {
     assert.equal(f.test(n2), false);
   });
 
-  it('basic uint32', () => {
+  it('distinguishes non-ASCII code units', () => {
     const f = new BloomFilter(1000, 4);
     const n1 = "\u0100";
     const n2 = "\u0101";
@@ -35,7 +35,7 @@ describe('bloom filter', () => {
     assert.equal(f.test(n3), false);
   });
 
-  it('wtf', () => {
+  it('distinguishes values in a small filter', () => {
     const f = new BloomFilter(20, 10);
     f.add("abc");
     assert.equal(f.test("wtf"), false);
@@ -69,6 +69,11 @@ describe('bloom filter', () => {
     assert.throws(() => BloomFilter.fromJSON({ version: 1, k: 1 }), /must include buckets/);
     assert.throws(() => BloomFilter.fromJSON({ version: 2, k: 1, buckets: [1] }), /Unsupported BloomFilter serialisation format version/);
     assert.throws(() => BloomFilter.fromJSON({ version: 1, m: 64, k: 1, buckets: [1] }), /inconsistent m and buckets/);
+    for (const buckets of [null, undefined, [], {}, { length: '1' }, { length: -1 }]) {
+      assert.throws(() => BloomFilter.fromJSON({ version: 1, k: 1, buckets }), {
+        name: 'RangeError', message: /non-empty array-like/
+      });
+    }
   });
 
   it('rejects invalid constructor inputs', () => {
@@ -198,11 +203,9 @@ describe('bloom filter', () => {
   it('size', () => {
     const f = new BloomFilter(1024 * 1024, 4);
     for (let i = 0; i < 100; ++i) f.add(i);
-    // Vows: assert.inDelta(f.size(), 100, 6);
     assert.ok(Math.abs(f.size() - 100) <= 6, 'Size within delta of 6');
-    
+
     for (let i = 0; i < 1000; ++i) f.add(i);
-    // Vows: assert.inDelta(f.size(), 1000, 100);
     assert.ok(Math.abs(f.size() - 1000) <= 100, 'Size within delta of 100');
   });
 
@@ -217,7 +220,6 @@ describe('bloom filter', () => {
     for (let i = 0; i < 100; ++i) {
       f.add(i);
     }
-    // Vows: assert.inDelta(f.error(), 1e-5, 1e-5);
     assert.ok(Math.abs(f.error() - 1e-5) <= 1e-5, 'Error within delta');
   });
 

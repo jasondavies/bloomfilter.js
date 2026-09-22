@@ -49,11 +49,19 @@ implementation at commit `3703d8a`, run this from a Git checkout:
 
 ```sh
 npm run benchmark:compare
+npm run benchmark:compare -- --reverse
 ```
 
-The comparison uses separate processes, warmups and repeated measurements for
-four ASCII-key workloads, and verifies matching filter contents and query
-results. Module startup and input generation are excluded from the timings.
+Both commands use the same runner and fill filters to their expected capacity.
+The comparison runs four ASCII-key workloads in separate processes and verifies
+matching filter contents and query results; `--reverse` reverses execution order.
+
+Each operation warms up for at least 100 ms and three batches, followed by nine
+measurement samples of at least 5 ms each. Results show medians and ranges in
+microseconds per operation. Setup, input generation, module startup, and result
+verification are excluded. Garbage collection may occur during timed operations;
+it is forced only before warmup. These are local microbenchmarks, so small
+performance differences should be treated cautiously.
 
 Implementation
 --------------
