@@ -201,7 +201,9 @@ const positions = [];
 
 for (const value of ["foo", "bar"]) {
   source.add(value);
-  positions.push(...source.locations(value));
+  for (const position of source.locations(value)) {
+    positions.push(position);
+  }
 }
 
 const message = JSON.stringify(positions);

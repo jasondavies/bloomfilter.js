@@ -63,6 +63,7 @@ export class BloomFilter {
       a += b;
       if (a >= m) a -= m;
       b += i;
+      // For i < m, the normalised sum is below 2m.
       if (b >= m) b = i < m ? b - m : b % m;
       r[i] = a;
     }
