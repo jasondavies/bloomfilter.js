@@ -230,7 +230,9 @@ function readBuckets(a, n) {
       assertBucketValue(value);
       values[i] = value;
     }
-    chunks.push(new Uint32Array(values));
+    const chunk = new Uint32Array(length);
+    for (let i = 0; i < length; ++i) chunk[i] = values[i];
+    chunks.push(chunk);
   }
   if (chunks.length === 1) return chunks[0];
   const buckets = new Uint32Array(n);
