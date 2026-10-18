@@ -216,6 +216,9 @@ export class BloomFilter {
     assertExpectedSize(n);
     assertTargetError(error);
     const m = Math.ceil(-n * Math.log2(error) / Math.LN2);
+    if (m > MAX_BITS) {
+      throw new RangeError(`Requested capacity and error rate require more than ${MAX_BITS} bits.`);
+    }
     const k = Math.ceil(Math.LN2 * m / n);
     return new BloomFilter(m, k);
   }

@@ -303,7 +303,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects invalid sizes and excessive computed hash counts before allocating', () => {
+  it('rejects invalid sizes and excessive computed parameters before allocating', () => {
     const OriginalArrayBuffer = globalThis.ArrayBuffer;
     let allocations = 0;
     globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
@@ -321,6 +321,11 @@ describe('bloom filter', () => {
       for (const n of [Number.MIN_VALUE, 1e-9]) {
         assert.throws(() => BloomFilter.withTargetError(n, 0.5), {
           name: 'RangeError', message: /k must be a positive integer no greater than 2048/
+        });
+      }
+      for (const n of [1e9, Number.MAX_VALUE]) {
+        assert.throws(() => BloomFilter.withTargetError(n, 0.01), {
+          name: 'RangeError', message: 'Requested capacity and error rate require more than 4294967296 bits.'
         });
       }
       assert.equal(allocations, 0);
