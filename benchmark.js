@@ -37,9 +37,9 @@ function runBenchmark() {
     union: digest(union), intersection: digest(intersection),
   };
   assert.equal(values.reduce((sum, value) => sum + filled.test(value), 0), n);
-  const repeats = Math.max(1, Math.ceil(Math.min(100_000, 4_000_000 / length) / n));
-  const allocatingOps = n <= 1_000 ? 1_000 : 100;
-  const scanOps = n <= 1_000 ? 20_000 : 200;
+  const repeats = 1;
+  const allocatingOps = 100;
+  const scanOps = 200;
   const timings = {};
   let sink;
 

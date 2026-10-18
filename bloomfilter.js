@@ -217,6 +217,9 @@ export class BloomFilter {
       throw new RangeError(`Requested capacity and error rate require more than ${MAX_BITS} bits.`);
     }
     const k = Math.ceil(Math.LN2 * m / n);
+    if (!Number.isInteger(k) || k < 1 || k > MAX_HASHES) {
+      throw new RangeError(`Requested capacity and error rate require a hash count outside the supported range of 1 to ${MAX_HASHES}.`);
+    }
     return new BloomFilter(m, k);
   }
 }
@@ -237,8 +240,13 @@ function initialiseFilter(filter, m, k, a) {
 
 function readBuckets(a, n) {
   // Genuine Uint32Arrays already contain valid values backed by allocated storage.
-  // Use the constructor to bypass overridden slice/iterator methods and species.
-  if (typedArrayName.call(a) === "Uint32Array") return new Uint32Array(a);
+  // Allocate first and use set to avoid source constructor/species hooks,
+  // including source-buffer hooks in older engines.
+  if (typedArrayName.call(a) === "Uint32Array") {
+    const buckets = new Uint32Array(n);
+    buckets.set(a);
+    return buckets;
+  }
   // Validate bounded chunks before allocating their storage. Sparse arrays and
   // array-likes can claim a huge length without containing any bucket values.
   const chunkSize = 16384;

@@ -329,12 +329,16 @@ test('bloom filter', async t => {
       for (const key of ['length', 'slice', 'constructor', Symbol.iterator, Symbol.toStringTag]) {
         Object.defineProperty(buckets, key, { get() { throw new Error('Unexpected custom hook'); } });
       }
+      Object.defineProperty(buckets.buffer, 'constructor', {
+        get() { throw new Error('Unexpected source-buffer constructor access'); }
+      });
       for (const restore of [a => new BloomFilter(a, 4),
         a => BloomFilter.fromJSON({ m: 64, k: 4, buckets: a })]) {
         const f = restore(buckets);
         assert.equal(f.m, 64);
         assert.deepEqual(Array.from(f.buckets), [1, 0xffffffff]);
         assert.notEqual(f.buckets.buffer, buckets.buffer);
+        assert.equal(Object.getPrototypeOf(f.buckets.buffer), ArrayBuffer.prototype);
         f.buckets[0] = 0;
         assert.equal(buckets[0], 1);
       }
@@ -367,7 +371,7 @@ test('bloom filter', async t => {
     try {
       const f = new BloomFilter(source, 4);
       assert.equal(allocations.length, 1);
-      assert.equal(allocations[0], source);
+      assert.equal(allocations[0], source.length);
       assert.deepEqual(f.buckets, source);
       assert.notEqual(f.buckets.buffer, source.buffer);
     } finally {
@@ -463,9 +467,10 @@ test('bloom filter', async t => {
           name: 'RangeError', message: /n must be a positive finite number/
         });
       }
-      for (const n of [Number.MIN_VALUE, 1e-9]) {
+      for (const n of [Number.MIN_VALUE, 1e-9, 1e-4]) {
         assert.throws(() => BloomFilter.withTargetError(n, 0.5), {
-          name: 'RangeError', message: /k must be a positive integer no greater than 2048/
+          name: 'RangeError',
+          message: 'Requested capacity and error rate require a hash count outside the supported range of 1 to 2048.'
         });
       }
       for (const n of [1e9, Number.MAX_VALUE]) {

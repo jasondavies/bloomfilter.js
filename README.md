@@ -248,6 +248,9 @@ the application is responsible for delivery or resynchronisation.
 - Development benchmarks are no longer included in the npm package.
   `benchmark.js` remains available in a repository checkout;
   `benchmark-compare.js` has been removed.
+- `Uint32Array` bucket inputs now use their actual typed-array length, ignoring
+  an overridden `length` property. For such inputs, the resulting `m` may differ
+  from version 1.1.2.
 
 Benchmark
 ---------
