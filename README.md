@@ -64,10 +64,10 @@ input buckets do not affect it.
 ### `BloomFilter.withTargetError(n, error)`
 
 Returns an empty filter sized for `n` expected distinct values and a target
-false-positive probability of `error`. `n` must be a finite number at least 1;
+false-positive probability of `error`. `n` must be a positive finite number;
 `error` must be finite and strictly between 0 and 1. The method chooses `m` and
 `k` automatically, subject to the constructor's limits. Invalid parameters or a
-computed size beyond those limits throw `RangeError`.
+computed bit size or hash count beyond those limits throw `RangeError`.
 
 The target is an estimate, not a guarantee. Inserting more values than expected
 increases the false-positive probability.
@@ -109,6 +109,10 @@ include duplicates. This method **does not insert the value or set any bits**.
 The returned array is reused by the next call to `locations` on the same filter.
 Copy it with `Array.from(filter.locations(value))` if you need to retain the
 positions. `add` and `test` do not overwrite this array.
+
+For JSON transport, use `JSON.stringify(Array.from(filter.locations(value)))`.
+Serialising the typed array directly produces an object with numeric keys, not
+an array, so the parsed result cannot be passed to `addLocations`.
 
 ### `filter.addLocations(locations)`
 
@@ -221,6 +225,19 @@ positions do not carry that metadata, so compatibility cannot be checked by
 `addLocations`. Repeated batches and out-of-order delivery are harmless because
 updates only set bits. Missing updates can cause false negatives at the receiver;
 the application is responsible for delivery or resynchronisation.
+
+1.2.0 release notes
+-------------------
+
+- Added `addLocations` and `fromLocations` for sparse bit updates.
+- `locations(value)` now uses the same string coercion as `add` and `test`.
+  Positions previously saved from non-string arguments to `locations` may
+  differ; recompute them from the original values. String positions and the
+  hashing used by `add` and `test` are unchanged.
+- Hash counts are now limited to 2,048 to prevent excessive allocation and work.
+  This rejects previously accepted configurations and serialised filters with
+  larger `k` values. Positive fractional expected sizes remain accepted by
+  `withTargetError`, subject to the bit-size and hash-count limits.
 
 Benchmark
 ---------

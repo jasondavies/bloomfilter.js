@@ -99,6 +99,20 @@ describe('bloom filter', () => {
     }
   });
 
+  it('transmits locations as a JSON array', () => {
+    const source = new BloomFilter(1024, 4);
+    const target = new BloomFilter(source.m, source.k);
+    const payload = JSON.stringify(Array.from(source.locations(42)));
+    target.addLocations(JSON.parse(payload));
+    source.add(42);
+    assert.deepEqual(target.toJSON(), source.toJSON());
+    assert.equal(target.test(42), true);
+    const object = JSON.parse(JSON.stringify(source.locations(42)));
+    assert.throws(() => target.addLocations(object), {
+      name: 'TypeError', message: 'Locations must be a non-string iterable of integer bit positions.'
+    });
+  });
+
   it('creates filters from locations using the rounded bit size', () => {
     const f = BloomFilter.fromLocations(33, 4, [0, 32, 63]);
     assert.deepEqual(f.toJSON(), { version: 1, m: 64, k: 4, buckets: [1, 0x80000001] });
@@ -152,8 +166,10 @@ describe('bloom filter', () => {
       });
       assert.deepEqual(Array.from(f.buckets), [2, 0]);
     }
-    for (const input of [null, undefined, 1, {}, { length: 1, 0: 0 }]) {
-      assert.throws(() => f.addLocations(input), TypeError);
+    for (const input of [null, undefined, 1, {}, { length: 1, 0: 0 }, { [Symbol.iterator]: 1 }]) {
+      const expected = { name: 'TypeError', message: 'Locations must be a non-string iterable of integer bit positions.' };
+      assert.throws(() => f.addLocations(input), expected);
+      assert.throws(() => BloomFilter.fromLocations(64, 4, input), expected);
       assert.deepEqual(Array.from(f.buckets), [2, 0]);
     }
     const failing = (function* () { yield 0; throw new Error('iterator failed'); })();
@@ -259,7 +275,7 @@ describe('bloom filter', () => {
   });
 
   it('rejects invalid target error inputs', () => {
-    assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a finite number at least 1/);
+    assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a positive finite number/);
     assert.throws(() => BloomFilter.withTargetError(100, 1), /error must be a finite number between 0 and 1, exclusive/);
   });
 
@@ -287,7 +303,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects expected sizes below one before allocating working memory', () => {
+  it('rejects invalid sizes and excessive computed hash counts before allocating', () => {
     const OriginalArrayBuffer = globalThis.ArrayBuffer;
     let allocations = 0;
     globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
@@ -297,9 +313,14 @@ describe('bloom filter', () => {
       }
     });
     try {
-      for (const n of [Number.MIN_VALUE, 1e-9, 0.5, 1 - Number.EPSILON, 0, -1, NaN, Infinity, '1']) {
+      for (const n of [0, -1, NaN, Infinity, '1']) {
         assert.throws(() => BloomFilter.withTargetError(n, 0.5), {
-          name: 'RangeError', message: /n must be a finite number at least 1/
+          name: 'RangeError', message: /n must be a positive finite number/
+        });
+      }
+      for (const n of [Number.MIN_VALUE, 1e-9]) {
+        assert.throws(() => BloomFilter.withTargetError(n, 0.5), {
+          name: 'RangeError', message: /k must be a positive integer no greater than 2048/
         });
       }
       assert.equal(allocations, 0);
@@ -308,7 +329,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('supports the hash-count limit and expected sizes of at least one', () => {
+  it('supports the hash-count limit and positive fractional expected sizes', () => {
     for (const m of [32, 65568]) {
       const f = new BloomFilter(m, 2048);
       assert.deepEqual(Array.from(f.locations('boundary')), referenceLocations('boundary', m, 2048));
@@ -319,7 +340,12 @@ describe('bloom filter', () => {
       assert.deepEqual(restored.toJSON(), f.toJSON());
       assert.deepEqual(BloomFilter.fromJSON(JSON.stringify(f)).toJSON(), f.toJSON());
     }
-    for (const n of [1, 1.5]) {
+    const fractional = BloomFilter.withTargetError(0.5, 0.01);
+    assert.equal(fractional.m, 32);
+    assert.equal(fractional.k, 7);
+    fractional.add(42);
+    assert.equal(fractional.test(42), true);
+    for (const n of [0.5, 1 - Number.EPSILON, 1, 1.5]) {
       for (const error of [0.5, Number.MIN_VALUE]) {
         const f = BloomFilter.withTargetError(n, error);
         assert.ok(f.k >= 1 && f.k <= 2048);

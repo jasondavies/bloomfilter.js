@@ -251,7 +251,8 @@ function popcnt(v) {
 }
 
 function readLocations(locations, m) {
-  if (typeof locations === "string" || locations instanceof String) {
+  if (locations == null || typeof locations === "string" || locations instanceof String
+    || typeof locations[Symbol.iterator] !== "function") {
     throw new TypeError("Locations must be a non-string iterable of integer bit positions.");
   }
   const positions = [...locations];
@@ -294,8 +295,8 @@ function assertHashCount(k) {
 }
 
 function assertExpectedSize(n) {
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
-    throw new RangeError("n must be a finite number at least 1.");
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+    throw new RangeError("n must be a positive finite number.");
   }
 }
 
