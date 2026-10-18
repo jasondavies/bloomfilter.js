@@ -219,12 +219,15 @@ the application is responsible for delivery or resynchronisation.
 Benchmark
 ---------
 
+Run the benchmark commands from a Git checkout of this repository. The benchmark
+scripts are development tools and are not included in the npm package.
+
 ```sh
 npm run benchmark
 ```
 
 To compare the working-tree implementation with the original JavaScript
-implementation at commit `3703d8a`, run this from a Git checkout:
+implementation at commit `3703d8a`, run:
 
 ```sh
 npm run benchmark:compare
