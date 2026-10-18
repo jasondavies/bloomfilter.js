@@ -48,6 +48,22 @@ describe('bloom filter', () => {
     assert.equal(f.test(2), false);
   });
 
+  it('coerces location values consistently with add and test', () => {
+    for (const value of [42, 0, -1, NaN, Infinity, true, false, null, undefined, 42n,
+      { toString() { return 'custom'; } }, ['a', 'b']]) {
+      const source = new BloomFilter(1024, 4);
+      assert.deepEqual(Array.from(source.locations(value)), Array.from(source.locations(value + '')));
+      const target = BloomFilter.fromLocations(source.m, source.k, source.locations(value));
+      source.add(value);
+      assert.deepEqual(target.buckets, source.buckets);
+      assert.equal(target.test(value), true);
+    }
+    const f = new BloomFilter(1024, 4);
+    for (const method of ['locations', 'add', 'test']) {
+      assert.throws(() => f[method](Symbol('value')), TypeError);
+    }
+  });
+
   it('adds sparse locations without clearing existing bits', () => {
     const f = new BloomFilter([2, 0], 4);
     const buckets = f.buckets;
@@ -91,6 +107,41 @@ describe('bloom filter', () => {
     assert.throws(() => BloomFilter.fromLocations(0, 4, []), RangeError);
     assert.throws(() => BloomFilter.fromLocations([0], 4, []), RangeError);
     assert.throws(() => BloomFilter.fromLocations(32, 0, []), RangeError);
+  });
+
+  it('validates sparse factory inputs before allocating buckets', () => {
+    const OriginalUint32Array = globalThis.Uint32Array;
+    let allocations = 0;
+    globalThis.Uint32Array = new Proxy(OriginalUint32Array, {
+      construct() {
+        ++allocations;
+        throw new Error('Unexpected bucket allocation');
+      }
+    });
+    try {
+      assert.throws(() => BloomFilter.fromLocations(0x100000000, 4, [0, 0x100000000]), {
+        name: 'RangeError', message: /integer bit positions/
+      });
+      assert.throws(() => BloomFilter.fromLocations(0x100000000, 4, '[0]'), TypeError);
+      assert.throws(() => BloomFilter.fromLocations(0x100000000, 4, null), TypeError);
+      const failing = (function* () { yield 0; throw new Error('iterator failed'); })();
+      assert.throws(() => BloomFilter.fromLocations(0x100000000, 4, failing), /iterator failed/);
+      assert.equal(allocations, 0);
+    } finally {
+      globalThis.Uint32Array = OriginalUint32Array;
+    }
+    const positions = (function* () { yield 0; yield 63; })();
+    assert.deepEqual(Array.from(BloomFilter.fromLocations(33, 4, positions).buckets), [1, 0x80000000]);
+  });
+
+  it('rejects strings as sparse location collections', () => {
+    const f = new BloomFilter([2, 0], 4);
+    for (const positions of ['', '5', '[1,2,3]', new String('')]) {
+      const expected = { name: 'TypeError', message: /non-string iterable/ };
+      assert.throws(() => f.addLocations(positions), expected);
+      assert.throws(() => BloomFilter.fromLocations(64, 4, positions), expected);
+      assert.deepEqual(Array.from(f.buckets), [2, 0]);
+    }
   });
 
   it('rejects invalid locations before changing the filter', () => {

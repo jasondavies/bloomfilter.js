@@ -41,6 +41,8 @@ export class BloomFilter {
 
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   locations(v) {
+    v = v + "";
+
     const k = this.k;
     const m = this.m;
     const r = this._locations;
@@ -93,17 +95,8 @@ export class BloomFilter {
 
   // Set sparse bit positions, validating the whole input before changing buckets.
   addLocations(locations) {
-    const positions = [...locations];
-    const m = this.m;
-    for (const position of positions) {
-      if (!Number.isInteger(position) || position < 0 || position >= m) {
-        throw new RangeError("Locations must be integer bit positions from 0 to m - 1.");
-      }
-    }
-    const buckets = this.buckets;
-    for (const position of positions) {
-      buckets[position >>> 5] |= 1 << (position & 31);
-    }
+    const positions = readLocations(locations, this.m);
+    setLocations(this.buckets, positions);
     return this;
   }
 
@@ -164,7 +157,11 @@ export class BloomFilter {
 
   static fromLocations(m, k, locations) {
     assertBitSize(m);
-    return new BloomFilter(m, k).addLocations(locations);
+    assertHashCount(k);
+    const positions = readLocations(locations, Math.ceil(m / 32) * 32);
+    const filter = new BloomFilter(m, k);
+    setLocations(filter.buckets, positions);
+    return filter;
   }
 
   static fromJSON(value) {
@@ -246,6 +243,25 @@ function popcnt(v) {
   v -= (v >>> 1) & 0x55555555;
   v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
   return ((v + (v >>> 4) & 0xf0f0f0f) * 0x1010101) >>> 24;
+}
+
+function readLocations(locations, m) {
+  if (typeof locations === "string" || locations instanceof String) {
+    throw new TypeError("Locations must be a non-string iterable of integer bit positions.");
+  }
+  const positions = [...locations];
+  for (const position of positions) {
+    if (!Number.isInteger(position) || position < 0 || position >= m) {
+      throw new RangeError("Locations must be integer bit positions from 0 to m - 1.");
+    }
+  }
+  return positions;
+}
+
+function setLocations(buckets, positions) {
+  for (const position of positions) {
+    buckets[position >>> 5] |= 1 << (position & 31);
+  }
 }
 
 function assertBitSize(m) {

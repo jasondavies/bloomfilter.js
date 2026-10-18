@@ -57,13 +57,15 @@ Both methods accept an iterable of numeric integer positions, including arrays,
 typed arrays and sets. Positions must be at least zero and less than the filter's
 allocated `m`. As with the constructor, `fromLocations` rounds the requested bit
 count up to a multiple of 32. Duplicates are harmless; an empty iterable sets no
-bits. Invalid positions throw `RangeError`, and non-iterable inputs throw
-`TypeError`. Input is collected and validated before any bits are changed.
+bits. Invalid positions throw `RangeError`; strings and non-iterable inputs throw
+`TypeError`. Input is collected and validated before any bits are changed, and
+`fromLocations` validates it before allocating the filter.
 
 When transferring hash locations between filters, use the same `m`, `k` and
-hashing scheme. `locations(value)` expects a string and returns a reusable typed
-array that is overwritten by the next call to `locations`; copy it with
-`Array.from` if you need to retain the positions.
+hashing scheme. `locations(value)` coerces values to strings in the same way as
+`add` and `test`. It returns a reusable typed array that is overwritten by the
+next call to `locations`; copy it with `Array.from` if you need to retain the
+positions.
 
 Benchmark
 ---------
