@@ -206,8 +206,74 @@ describe('bloom filter', () => {
   });
 
   it('rejects invalid target error inputs', () => {
-    assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a positive finite number/);
+    assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a finite number at least 1/);
     assert.throws(() => BloomFilter.withTargetError(100, 1), /error must be a finite number between 0 and 1, exclusive/);
+  });
+
+  it('rejects excessive hash counts before allocating working memory', () => {
+    const OriginalArrayBuffer = globalThis.ArrayBuffer;
+    let allocations = 0;
+    globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
+      construct() {
+        ++allocations;
+        throw new Error('Unexpected working-memory allocation');
+      }
+    });
+    try {
+      for (const k of [2049, 1e9, 2 ** 31, Number.MAX_SAFE_INTEGER]) {
+        const expected = { name: 'RangeError', message: /k must be a positive integer no greater than 2048/ };
+        assert.throws(() => new BloomFilter(32, k), expected);
+        assert.throws(() => new BloomFilter([0], k), expected);
+        assert.throws(() => BloomFilter.fromJSON({ k, buckets: [0] }), expected);
+        assert.throws(() => BloomFilter.fromJSON(JSON.stringify({ k, buckets: [0] })), expected);
+        assert.throws(() => BloomFilter.fromLocations(32, k, []), expected);
+      }
+      assert.equal(allocations, 0);
+    } finally {
+      globalThis.ArrayBuffer = OriginalArrayBuffer;
+    }
+  });
+
+  it('rejects expected sizes below one before allocating working memory', () => {
+    const OriginalArrayBuffer = globalThis.ArrayBuffer;
+    let allocations = 0;
+    globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
+      construct() {
+        ++allocations;
+        throw new Error('Unexpected working-memory allocation');
+      }
+    });
+    try {
+      for (const n of [Number.MIN_VALUE, 1e-9, 0.5, 1 - Number.EPSILON, 0, -1, NaN, Infinity, '1']) {
+        assert.throws(() => BloomFilter.withTargetError(n, 0.5), {
+          name: 'RangeError', message: /n must be a finite number at least 1/
+        });
+      }
+      assert.equal(allocations, 0);
+    } finally {
+      globalThis.ArrayBuffer = OriginalArrayBuffer;
+    }
+  });
+
+  it('supports the hash-count limit and expected sizes of at least one', () => {
+    for (const m of [32, 65568]) {
+      const f = new BloomFilter(m, 2048);
+      assert.deepEqual(Array.from(f.locations('boundary')), referenceLocations('boundary', m, 2048));
+      assert.ok(f._locations.byteLength <= 8192);
+      const restored = BloomFilter.fromLocations(m, 2048, f.locations('boundary'));
+      f.add('boundary');
+      assert.equal(f.test('boundary'), true);
+      assert.deepEqual(restored.toJSON(), f.toJSON());
+      assert.deepEqual(BloomFilter.fromJSON(JSON.stringify(f)).toJSON(), f.toJSON());
+    }
+    for (const n of [1, 1.5]) {
+      for (const error of [0.5, Number.MIN_VALUE]) {
+        const f = BloomFilter.withTargetError(n, error);
+        assert.ok(f.k >= 1 && f.k <= 2048);
+        f.add('value');
+        assert.equal(f.test('value'), true);
+      }
+    }
   });
 
   it('matches independent hash locations across bucket widths and large hash counts', () => {

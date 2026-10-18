@@ -43,9 +43,10 @@ API reference
 ### `new BloomFilter(m, k)`
 
 Creates an empty filter. `m` is a positive finite number of bits, at most
-4,294,967,296 (2³²), rounded up to a multiple of 32. `k` is a positive integer
-specifying the number of hash locations per value. Invalid parameters throw
-`RangeError`.
+4,294,967,296 (2³²), rounded up to a multiple of 32. `k` is an integer from 1 to
+2,048 specifying the number of hash locations per value. Invalid parameters throw
+`RangeError`. The limit on `k` bounds the working locations buffer to at most
+8 KiB and limits the number of bit operations per inserted value.
 
 ### `new BloomFilter(buckets, k)`
 
@@ -53,14 +54,14 @@ Creates a filter by copying a non-empty array-like collection of unsigned 32-bit
 integers. Arrays and `Uint32Array` instances are accepted. Each bucket stores 32
 bits, so the resulting `m` is `buckets.length * 32`. There may be at most
 134,217,728 buckets; each value must be an integer from 0 to 4,294,967,295.
-`k` must be a positive integer. Invalid parameters throw `RangeError`.
+`k` must be an integer from 1 to 2,048. Invalid parameters throw `RangeError`.
 
 The filter owns its copy: later changes to the input buckets do not affect it.
 
 ### `BloomFilter.withTargetError(n, error)`
 
 Returns an empty filter sized for `n` expected distinct values and a target
-false-positive probability of `error`. `n` must be a positive finite number;
+false-positive probability of `error`. `n` must be a finite number at least 1;
 `error` must be finite and strictly between 0 and 1. The method chooses `m` and
 `k` automatically, subject to the constructor's limits. Invalid parameters or a
 computed size beyond those limits throw `RangeError`.

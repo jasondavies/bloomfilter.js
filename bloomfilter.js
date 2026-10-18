@@ -1,5 +1,6 @@
 const MAX_BITS = 0x100000000;
 const MAX_BUCKETS = MAX_BITS / 32;
+const MAX_HASHES = 2048;
 const SERIALISATION_VERSION = 1;
 
 export class BloomFilter {
@@ -283,14 +284,14 @@ function assertBucketValue(value) {
 }
 
 function assertHashCount(k) {
-  if (!Number.isInteger(k) || k <= 0) {
-    throw new RangeError("k must be a positive integer.");
+  if (!Number.isInteger(k) || k <= 0 || k > MAX_HASHES) {
+    throw new RangeError(`k must be a positive integer no greater than ${MAX_HASHES}.`);
   }
 }
 
 function assertExpectedSize(n) {
-  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
-    throw new RangeError("n must be a positive finite number.");
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) {
+    throw new RangeError("n must be a finite number at least 1.");
   }
 }
 
