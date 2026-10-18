@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Run tests
+        run: npm test
+      - name: Check package contents and installed import
+        shell: bash
+        run: |
+          pack_dir=$(mktemp -d)
+          trap 'rm -rf "$pack_dir"' EXIT
+          npm pack --ignore-scripts --json --pack-destination "$pack_dir" > "$pack_dir/pack.json"
+          node --input-type=module - "$pack_dir/pack.json" <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+
+          const [pack] = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+          assert.deepEqual(pack.files.map(file => file.path).sort(), [
+            'LICENSE', 'README.md', 'bloomfilter.js', 'package.json'
+          ]);
+          JS
+          mkdir "$pack_dir/consumer"
+          cd "$pack_dir/consumer"
+          npm install --offline --ignore-scripts --no-audit --no-fund --package-lock=false "$pack_dir"/*.tgz
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { BloomFilter } from 'bloomfilter';
+
+          const source = new BloomFilter(1024, 4);
+          source.add(42);
+          assert.equal(source.test(42), true);
+          const positions = JSON.parse(JSON.stringify(Array.from(source.locations(42))));
+          const target = BloomFilter.fromLocations(source.m, source.k, positions);
+          assert.deepEqual(target.buckets, source.buckets);
+          assert.equal(target.test(42), true);
+          target.addLocations(source.locations('hello'));
+          assert.equal(target.test('hello'), true);
+          JS
