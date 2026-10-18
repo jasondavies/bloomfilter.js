@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "benchmark": "node --expose-gc benchmark.js",
-    "test": "node --test"
+    "test": "node test/bloomfilter-test.js"
   },
   "engines": {
     "node": ">=18.0.0"

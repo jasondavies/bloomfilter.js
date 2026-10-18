@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
@@ -16,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24]
+        node: ['18.0.0', 18, 20, 22, 24]
     steps:
       - uses: actions/checkout@v7
         with:

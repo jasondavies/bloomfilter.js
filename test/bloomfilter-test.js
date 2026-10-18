@@ -1,12 +1,13 @@
-import { describe, it } from 'node:test';
+import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 import assert from 'node:assert/strict';
 import { BloomFilter } from '../bloomfilter.js';
 
 const jabberwocky = "`Twas brillig, and the slithy toves\n  Did gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n  And the mome raths outgrabe.\n\n\"Beware the Jabberwock, my son!\n  The jaws that bite, the claws that catch!\nBeware the Jubjub bird, and shun\n  The frumious Bandersnatch!\"\n\nHe took his vorpal sword in hand:\n  Long time the manxome foe he sought --\nSo rested he by the Tumtum tree,\n  And stood awhile in thought.\n\nAnd, as in uffish thought he stood,\n  The Jabberwock, with eyes of flame,\nCame whiffling through the tulgey wood,\n  And burbled as it came!\n\nOne, two! One, two! And through and through\n  The vorpal blade went snicker-snack!\nHe left it dead, and with its head\n  He went galumphing back.\n\n\"And, has thou slain the Jabberwock?\n  Come to my arms, my beamish boy!\nO frabjous day! Callooh! Callay!'\n  He chortled in his joy.\n\n`Twas brillig, and the slithy toves\n  Did gyre and gimble in the wabe;\nAll mimsy were the borogoves,\n  And the mome raths outgrabe.";
 
-describe('bloom filter', () => {
+test('bloom filter', async t => {
 
-  it('basic', () => {
+  await t.test('basic', () => {
     const f = new BloomFilter(1000, 4);
     const n1 = "Bess";
     const n2 = "Jane";
@@ -15,7 +16,7 @@ describe('bloom filter', () => {
     assert.equal(f.test(n2), false);
   });
 
-  it('jabberwocky', () => {
+  await t.test('jabberwocky', () => {
     const f = new BloomFilter(1000, 4);
     const n1 = jabberwocky;
     const n2 = jabberwocky + "\n";
@@ -24,7 +25,7 @@ describe('bloom filter', () => {
     assert.equal(f.test(n2), false);
   });
 
-  it('distinguishes non-ASCII code units', () => {
+  await t.test('distinguishes non-ASCII code units', () => {
     const f = new BloomFilter(1000, 4);
     const n1 = "\u0100";
     const n2 = "\u0101";
@@ -35,20 +36,20 @@ describe('bloom filter', () => {
     assert.equal(f.test(n3), false);
   });
 
-  it('distinguishes values in a small filter', () => {
+  await t.test('distinguishes values in a small filter', () => {
     const f = new BloomFilter(20, 10);
     f.add("abc");
     assert.equal(f.test("wtf"), false);
   });
 
-  it('works with integer types', () => {
+  await t.test('works with integer types', () => {
     const f = new BloomFilter(1000, 4);
     f.add(1);
     assert.equal(f.test(1), true);
     assert.equal(f.test(2), false);
   });
 
-  it('coerces location values consistently with add and test', () => {
+  await t.test('coerces location values consistently with add and test', () => {
     for (const value of [42, 0, -1, NaN, Infinity, true, false, null, undefined, 42n,
       { toString() { return 'custom'; } }, ['a', 'b']]) {
       const source = new BloomFilter(1024, 4);
@@ -64,7 +65,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('adds sparse locations without clearing existing bits', () => {
+  await t.test('adds sparse locations without clearing existing bits', () => {
     const f = new BloomFilter([2, 0], 4);
     const buckets = f.buckets;
     const positions = [63, 0, 31, 32, 0];
@@ -76,7 +77,7 @@ describe('bloom filter', () => {
     assert.deepEqual(Array.from(f.buckets), [0x80000003, 0x80000001]);
   });
 
-  it('accepts sets, typed arrays and single-use iterators of locations', () => {
+  await t.test('accepts sets, typed arrays and single-use iterators of locations', () => {
     const f = new BloomFilter(96, 4);
     f.addLocations(new Set([0, 31]));
     f.addLocations(new Uint32Array([32, 63]));
@@ -84,7 +85,7 @@ describe('bloom filter', () => {
     assert.deepEqual(Array.from(f.buckets), [0x80000001, 0x80000001, 0x80000001]);
   });
 
-  it('copies hash locations to a compatible filter', () => {
+  await t.test('copies hash locations to a compatible filter', () => {
     for (const m of [256, 288, 65568]) {
       const source = new BloomFilter(m, 7);
       const target = BloomFilter.fromLocations(m, 7, source.locations('café'));
@@ -99,7 +100,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('transmits locations as a JSON array', () => {
+  await t.test('transmits locations as a JSON array', () => {
     const source = new BloomFilter(1024, 4);
     const target = new BloomFilter(source.m, source.k);
     const payload = JSON.stringify(Array.from(source.locations(42)));
@@ -113,7 +114,7 @@ describe('bloom filter', () => {
     });
   });
 
-  it('creates filters from locations using the rounded bit size', () => {
+  await t.test('creates filters from locations using the rounded bit size', () => {
     const f = BloomFilter.fromLocations(33, 4, [0, 32, 63]);
     assert.deepEqual(f.toJSON(), { version: 1, m: 64, k: 4, buckets: [1, 0x80000001] });
     assert.equal(BloomFilter.fromLocations(33, 4, []).countBits(), 0);
@@ -123,7 +124,7 @@ describe('bloom filter', () => {
     assert.throws(() => BloomFilter.fromLocations(32, 0, []), RangeError);
   });
 
-  it('validates sparse factory inputs before allocating buckets', () => {
+  await t.test('validates sparse factory inputs before allocating buckets', () => {
     const OriginalUint32Array = globalThis.Uint32Array;
     let allocations = 0;
     globalThis.Uint32Array = new Proxy(OriginalUint32Array, {
@@ -148,7 +149,7 @@ describe('bloom filter', () => {
     assert.deepEqual(Array.from(BloomFilter.fromLocations(33, 4, positions).buckets), [1, 0x80000000]);
   });
 
-  it('rejects strings as sparse location collections', () => {
+  await t.test('rejects strings as sparse location collections', () => {
     const f = new BloomFilter([2, 0], 4);
     for (const positions of ['', '5', '[1,2,3]', new String('')]) {
       const expected = { name: 'TypeError', message: /non-string iterable/ };
@@ -158,7 +159,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects invalid locations before changing the filter', () => {
+  await t.test('rejects invalid locations before changing the filter', () => {
     const f = new BloomFilter([2, 0], 4);
     for (const position of [-1, 64, 0x100000000, 0.5, NaN, Infinity, '1', null, undefined, 1n]) {
       assert.throws(() => f.addLocations([0, position]), {
@@ -177,7 +178,7 @@ describe('bloom filter', () => {
     assert.deepEqual(Array.from(f.buckets), [2, 0]);
   });
 
-  it('sets sparse locations through the maximum bit size', () => {
+  await t.test('sets sparse locations through the maximum bit size', () => {
     // Exercise unsigned indexing without allocating a 512 MiB filter.
     const f = { m: 0x100000000, buckets: Object.create(null) };
     assert.equal(BloomFilter.prototype.addLocations.call(f, [0x80000000, 0xffffffff]), f);
@@ -186,7 +187,7 @@ describe('bloom filter', () => {
     assert.deepEqual(Object.keys(f.buckets), ['67108864', '134217727']);
   });
 
-  it('serialises and deserialises with JSON', () => {
+  await t.test('serialises and deserialises with JSON', () => {
     const f = new BloomFilter(1000, 4);
     f.add("Bess");
     f.add("Jane");
@@ -201,7 +202,7 @@ describe('bloom filter', () => {
     assert.equal(restored.test("Emily"), false);
   });
 
-  it('rejects invalid serialised filters', () => {
+  await t.test('rejects invalid serialised filters', () => {
     assert.throws(() => BloomFilter.fromJSON(null), /must be an object or JSON string/);
     assert.throws(() => BloomFilter.fromJSON({ version: 1, buckets: [1] }), /must include k/);
     assert.throws(() => BloomFilter.fromJSON({ version: 1, k: 1 }), /must include buckets/);
@@ -214,14 +215,14 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects invalid constructor inputs', () => {
+  await t.test('rejects invalid constructor inputs', () => {
     assert.throws(() => new BloomFilter(0, 1), /m must be a positive finite number of bits/);
     assert.throws(() => new BloomFilter(1000, 0), /k must be a positive integer/);
     assert.throws(() => new BloomFilter([], 1), /non-empty array-like/);
     assert.throws(() => new BloomFilter([1, -1], 1), /Bucket values must be unsigned 32-bit integers/);
   });
 
-  it('validates bucket contents before allocating filter storage', () => {
+  await t.test('validates bucket contents before allocating filter storage', () => {
     const OriginalArrayBuffer = globalThis.ArrayBuffer;
     const OriginalUint32Array = globalThis.Uint32Array;
     let allocations = 0;
@@ -258,7 +259,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('copies validated array-like bucket values after reading each once', () => {
+  await t.test('copies validated array-like bucket values after reading each once', () => {
     for (const restore of [buckets => new BloomFilter(buckets, 4),
       buckets => BloomFilter.fromJSON({ k: 4, buckets })]) {
       const reads = [0, 0];
@@ -280,7 +281,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('reads bucket lengths and serialised buckets only once', () => {
+  await t.test('reads bucket lengths and serialised buckets only once', () => {
     for (const restore of [buckets => new BloomFilter(buckets, 4),
       buckets => BloomFilter.fromJSON({ m: 64, k: 4, buckets })]) {
       let reads = 0;
@@ -299,7 +300,82 @@ describe('bloom filter', () => {
     assert.deepEqual(Array.from(f.buckets), [1, 2]);
   });
 
-  it('copies buckets correctly across snapshot chunk boundaries', () => {
+  await t.test('reads the serialisation version once, including for errors', () => {
+    for (const version of [undefined, 1, 2]) {
+      let reads = 0;
+      const data = { k: 1, buckets: [1], get version() {
+        assert.equal(++reads, 1);
+        return version;
+      } };
+      if (version === 2) {
+        assert.throws(() => BloomFilter.fromJSON(data), {
+          name: 'RangeError', message: 'Unsupported BloomFilter serialisation format version: 2.'
+        });
+      } else {
+        assert.deepEqual(Array.from(BloomFilter.fromJSON(data).buckets), [1]);
+      }
+      assert.equal(reads, 1);
+    }
+  });
+
+  await t.test('copies genuine Uint32Arrays without invoking custom hooks', () => {
+    class CustomBuckets extends Uint32Array {
+      static get [Symbol.species]() { throw new Error('Unexpected species access'); }
+    }
+    for (const buckets of [new Uint32Array([1, 0xffffffff]),
+      new CustomBuckets([1, 0xffffffff]),
+      new Uint32Array([99, 1, 0xffffffff, 99]).subarray(1, 3),
+      runInNewContext('new Uint32Array([1, 0xffffffff])')]) {
+      for (const key of ['length', 'slice', 'constructor', Symbol.iterator, Symbol.toStringTag]) {
+        Object.defineProperty(buckets, key, { get() { throw new Error('Unexpected custom hook'); } });
+      }
+      for (const restore of [a => new BloomFilter(a, 4),
+        a => BloomFilter.fromJSON({ m: 64, k: 4, buckets: a })]) {
+        const f = restore(buckets);
+        assert.equal(f.m, 64);
+        assert.deepEqual(Array.from(f.buckets), [1, 0xffffffff]);
+        assert.notEqual(f.buckets.buffer, buckets.buffer);
+        f.buckets[0] = 0;
+        assert.equal(buckets[0], 1);
+      }
+    }
+  });
+
+  await t.test('does not trust spoofed or proxied typed arrays', () => {
+    for (const buckets of [
+      { length: 1, 0: -1, [Symbol.toStringTag]: 'Uint32Array' },
+      new Proxy(new Uint32Array([1]), { get(target, key) {
+        return key === '0' ? -1 : Reflect.get(target, key, target);
+      } })
+    ]) {
+      assert.throws(() => new BloomFilter(buckets, 1), /Bucket values must be unsigned 32-bit integers/);
+    }
+  });
+
+  await t.test('copies large Uint32Arrays with a single bucket allocation', () => {
+    const OriginalUint32Array = globalThis.Uint32Array;
+    const source = new OriginalUint32Array(32769);
+    source[source.length - 1] = 0xffffffff;
+    const allocations = [];
+    globalThis.Uint32Array = new Proxy(OriginalUint32Array, {
+      construct(target, args) {
+        // The locations working buffer is separate from bucket storage.
+        if (!(args[0] instanceof ArrayBuffer)) allocations.push(args[0]);
+        return new target(...args);
+      }
+    });
+    try {
+      const f = new BloomFilter(source, 4);
+      assert.equal(allocations.length, 1);
+      assert.equal(allocations[0], source);
+      assert.deepEqual(f.buckets, source);
+      assert.notEqual(f.buckets.buffer, source.buffer);
+    } finally {
+      globalThis.Uint32Array = OriginalUint32Array;
+    }
+  });
+
+  await t.test('copies buckets correctly across snapshot chunk boundaries', () => {
     for (const n of [16383, 16384, 16385, 32769]) {
       const expected = Uint32Array.from({ length: n }, (_, i) => (i * 2654435761) >>> 0);
       for (const buckets of [expected, Array.from(expected)]) {
@@ -320,7 +396,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('allocates only validated chunks before a late invalid bucket', () => {
+  await t.test('allocates only validated chunks before a late invalid bucket', () => {
     const OriginalUint32Array = globalThis.Uint32Array;
     const allocations = [];
     globalThis.Uint32Array = new Proxy(OriginalUint32Array, {
@@ -343,12 +419,12 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects invalid target error inputs', () => {
+  await t.test('rejects invalid target error inputs', () => {
     assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a positive finite number/);
     assert.throws(() => BloomFilter.withTargetError(100, 1), /error must be a finite number between 0 and 1, exclusive/);
   });
 
-  it('rejects excessive hash counts before allocating working memory', () => {
+  await t.test('rejects excessive hash counts before allocating working memory', () => {
     const OriginalArrayBuffer = globalThis.ArrayBuffer;
     let allocations = 0;
     globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
@@ -372,7 +448,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('rejects invalid sizes and excessive computed parameters before allocating', () => {
+  await t.test('rejects invalid sizes and excessive computed parameters before allocating', () => {
     const OriginalArrayBuffer = globalThis.ArrayBuffer;
     let allocations = 0;
     globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, {
@@ -397,13 +473,16 @@ describe('bloom filter', () => {
           name: 'RangeError', message: 'Requested capacity and error rate require more than 4294967296 bits.'
         });
       }
+      assert.throws(() => BloomFilter.withTargetError(Number.MIN_VALUE, 0.9), {
+        name: 'RangeError', message: 'Requested capacity and error rate produce a bit size too small to represent.'
+      });
       assert.equal(allocations, 0);
     } finally {
       globalThis.ArrayBuffer = OriginalArrayBuffer;
     }
   });
 
-  it('supports the hash-count limit and positive fractional expected sizes', () => {
+  await t.test('supports the hash-count limit and positive fractional expected sizes', () => {
     for (const m of [32, 65568]) {
       const f = new BloomFilter(m, 2048);
       assert.deepEqual(Array.from(f.locations('boundary')), referenceLocations('boundary', m, 2048));
@@ -429,7 +508,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('matches independent hash locations across bucket widths and large hash counts', () => {
+  await t.test('matches independent hash locations across bucket widths and large hash counts', () => {
     const values = ['', 'Bess', 'café', '\u0100', '😀', '\ud800', '\udfff', 'x'.repeat(50_000)];
     for (const m of [32, 96, 256, 288, 65536, 65568]) {
       for (const k of [1, 7, 33, 65]) {
@@ -452,7 +531,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('reads version-1 filters containing Unicode strings', () => {
+  await t.test('reads version-1 filters containing Unicode strings', () => {
     // Saved by the original JavaScript implementation, before the loop changes.
     const f = BloomFilter.fromJSON({
       version: 1, m: 256, k: 4,
@@ -464,7 +543,7 @@ describe('bloom filter', () => {
     assert.deepEqual(rebuilt.toJSON(), f.toJSON());
   });
 
-  it('uses unsigned bucket indexes through the maximum bit size', () => {
+  await t.test('uses unsigned bucket indexes through the maximum bit size', () => {
     let sawHighBit = false;
     for (const m of [0x80000000, 0xffffffe0, 0x100000000]) {
       // Sparse buckets exercise actual hashing/indexing without a giant allocation.
@@ -484,7 +563,7 @@ describe('bloom filter', () => {
     assert.equal(sawHighBit, true);
   });
 
-  it('stops at the first missing bit', () => {
+  await t.test('stops at the first missing bit', () => {
     let reads = 0;
     const f = {
       m: 1024, k: 17,
@@ -494,7 +573,7 @@ describe('bloom filter', () => {
     assert.equal(reads, 1);
   });
 
-  it('retains bucket views when adding long strings', () => {
+  await t.test('retains bucket views when adding long strings', () => {
     const f = new BloomFilter(1000, 4);
     const buckets = f.buckets;
     f.add('short');
@@ -504,7 +583,7 @@ describe('bloom filter', () => {
     assert.equal(f.test('x'.repeat(50_000)), true);
   });
 
-  it('combines filters without signed bucket-length overflow', () => {
+  await t.test('combines filters without signed bucket-length overflow', () => {
     // Force the sign bit in m without allocating a giant backing array.
     const f0 = new BloomFilter([0b01], 1);
     const f1 = new BloomFilter([0b10], 1);
@@ -522,7 +601,7 @@ describe('bloom filter', () => {
     ['union', [0xffffffff, 0xffffffff, 0b0111]],
     ['intersection', [0x80000000, 0x80000000, 0b0100]]
   ]) {
-    it(`${operation} returns unsigned buckets independent of its inputs`, () => {
+    await t.test(`${operation} returns unsigned buckets independent of its inputs`, () => {
       const left = new BloomFilter([0xffffffff, 0x80000000, 0b0101], 7);
       const right = new BloomFilter([0x80000000, 0xffffffff, 0b0110], 7);
       const beforeLeft = left.toJSON();
@@ -541,7 +620,7 @@ describe('bloom filter', () => {
     });
   }
 
-  it('size', () => {
+  await t.test('size', () => {
     const f = new BloomFilter(1024 * 1024, 4);
     for (let i = 0; i < 100; ++i) f.add(i);
     assert.ok(Math.abs(f.size() - 100) <= 6, 'Size within delta of 6');
@@ -550,13 +629,13 @@ describe('bloom filter', () => {
     assert.ok(Math.abs(f.size() - 1000) <= 100, 'Size within delta of 100');
   });
 
-  it('countBits', () => {
+  await t.test('countBits', () => {
     const f = new BloomFilter(1024, 4);
     f.add(0);
     assert.equal(f.countBits(), 4);
   });
 
-  it('withTargetError/error', () => {
+  await t.test('withTargetError/error', () => {
     const f = BloomFilter.withTargetError(100, 1e-5);
     for (let i = 0; i < 100; ++i) {
       f.add(i);
@@ -564,7 +643,7 @@ describe('bloom filter', () => {
     assert.ok(Math.abs(f.error() - 1e-5) <= 1e-5, 'Error within delta');
   });
 
-  it('union', () => {
+  await t.test('union', () => {
     const f0 = BloomFilter.withTargetError(100, 1e-5);
     const f1 = BloomFilter.withTargetError(100, 1e-5);
     for (let i = 0; i < 100; ++i) {
@@ -579,7 +658,7 @@ describe('bloom filter', () => {
     }
   });
 
-  it('intersection', () => {
+  await t.test('intersection', () => {
     const f0 = BloomFilter.withTargetError(100, 1e-5);
     const f1 = BloomFilter.withTargetError(100, 1e-5);
     for (let i = 0; i < 200; ++i) {

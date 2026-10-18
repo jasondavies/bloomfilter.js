@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { cpus } from "node:os";
-import { realpathSync } from "node:fs";
 import { performance } from "node:perf_hooks";
-import { pathToFileURL } from "node:url";
 import { BloomFilter } from "./bloomfilter.js";
 
 const minimumWarmups = 3;
@@ -11,14 +9,9 @@ const minimumWarmupMs = 100;
 const minimumSampleMs = 5;
 const rounds = 9;
 
-export const scenarios = [
-  { name: "small / short keys", n: 1_000, error: 0.01, length: 16 },
-  { name: "large / short keys", n: 100_000, error: 1e-5, length: 16 },
-  { name: "large / 128-byte keys", n: 100_000, error: 1e-5, length: 128 },
-  { name: "10k / 4KiB keys", n: 10_000, error: 1e-5, length: 4096 },
-];
+const scenario = { name: "large / short keys", n: 100_000, error: 1e-5, length: 16 };
 
-export function runBenchmark(BloomFilter, scenario) {
+function runBenchmark() {
   const { n, error, length } = scenario;
   // Flatten strings before measurement so construction/rope flattening is excluded.
   const key = (prefix, i) => Buffer.from(`${prefix}:${i.toString(16).padStart(8, "0")}:`.padEnd(length, "x")).toString();
@@ -40,9 +33,8 @@ export function runBenchmark(BloomFilter, scenario) {
   const union = BloomFilter.union(filled, right);
   const intersection = BloomFilter.intersection(filled, right);
   const checks = {
-    buckets: digest(filled), bits: expectedBits, misses: expectedMisses, locationSum: expectedLocationSum,
+    buckets: digest(filled),
     union: digest(union), intersection: digest(intersection),
-    locations: values.slice(0, 100).map(value => Array.from(filled.locations(value))),
   };
   assert.equal(values.reduce((sum, value) => sum + filled.test(value), 0), n);
   const repeats = Math.max(1, Math.ceil(Math.min(100_000, 4_000_000 / length) / n));
@@ -121,25 +113,21 @@ export function runBenchmark(BloomFilter, scenario) {
     }, result => assert.equal(digest(result), checks[name]));
   }
   assert.notEqual(sink, undefined);
-  const bytes = filled.buckets.byteLength + filled._locations.byteLength;
-  return { m: filled.m, k: filled.k, bytes, checks, timings };
+  return { m: filled.m, k: filled.k, timings };
 }
 
-export function printEnvironment({ forceGc = Boolean(global.gc) } = {}) {
+function printEnvironment() {
   console.log(`Node ${process.version}; ${process.platform}/${process.arch}; ${cpus()[0]?.model}`);
   console.log(`Warmup: at least ${minimumWarmups} batches and ${minimumWarmupMs} ms per operation`);
   console.log(`Measurement: ${rounds} samples of at least ${minimumSampleMs} ms; medians and ranges in µs/op`);
-  console.log(`Initial GC: ${forceGc ? "before warmup" : "not forced"}; GC during timed operations is included`);
+  console.log(`Initial GC: ${global.gc ? "before warmup" : "not forced"}; GC during timed operations is included`);
   console.log("ASCII keys, filled to target capacity; setup, verification and module startup excluded.");
 }
 
-if (process.argv[1] && pathToFileURL(realpathSync(process.argv[1])).href === import.meta.url) {
-  printEnvironment();
-  const scenario = scenarios[1];
-  const result = runBenchmark(BloomFilter, scenario);
-  console.log(`\n${scenario.name}: n=${scenario.n}, m=${result.m}, k=${result.k}`);
-  console.log("Operation         Median µs   Range (µs/op)");
-  for (const [name, timing] of Object.entries(result.timings)) {
-    console.log(`${name.padEnd(15)} ${timing.median.toFixed(3).padStart(10)}   ${timing.min.toFixed(3)}–${timing.max.toFixed(3)}`);
-  }
+printEnvironment();
+const result = runBenchmark();
+console.log(`\n${scenario.name}: n=${scenario.n}, m=${result.m}, k=${result.k}`);
+console.log("Operation         Median µs   Range (µs/op)");
+for (const [name, timing] of Object.entries(result.timings)) {
+  console.log(`${name.padEnd(15)} ${timing.median.toFixed(3).padStart(10)}   ${timing.min.toFixed(3)}–${timing.max.toFixed(3)}`);
 }

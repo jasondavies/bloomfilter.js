@@ -56,9 +56,14 @@ bits, so the resulting `m` is `buckets.length * 32`. There may be at most
 134,217,728 buckets; each value must be an integer from 0 to 4,294,967,295.
 `k` must be an integer from 1 to 2,048. Invalid parameters throw `RangeError`.
 
-Bucket values are read once into a validated snapshot before allocating the
-filter's buffers. Temporary storage grows with the number of validated values,
-not just the declared length. The filter owns its copy: later changes to the
+`Uint32Array` inputs are copied directly, using their actual typed-array length.
+Other inputs are read once into validated chunks before allocating the final
+bucket buffer. Temporary storage grows with the number of validated values,
+not just the declared length. For more than 16,384 buckets, these chunks can
+temporarily require roughly one extra bucket buffer's worth of memory: up to
+512 MiB at the maximum filter size, in addition to the input and final filter.
+This also applies when restoring a large filter from JSON. A `Uint32Array`
+input avoids that extra copy. The filter owns its copy: later changes to the
 input buckets do not affect it.
 
 ### `BloomFilter.withTargetError(n, error)`

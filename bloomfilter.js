@@ -2,6 +2,17 @@ const MAX_BITS = 0x100000000;
 const MAX_BUCKETS = MAX_BITS / 32;
 const MAX_HASHES = 2048;
 const SERIALISATION_VERSION = 1;
+const typedArrayPrototype = Object.getPrototypeOf(Uint32Array.prototype);
+const typedArrayName = Object.getOwnPropertyDescriptor(typedArrayPrototype, Symbol.toStringTag).get;
+const typedArrayLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, "length").get;
+
+// Carry an already checked length from fromJSON through the normal constructor.
+class BucketSource {
+  constructor(buckets, m) {
+    this.buckets = buckets;
+    this.m = m;
+  }
+}
 
 export class BloomFilter {
 
@@ -11,7 +22,10 @@ export class BloomFilter {
    */
   constructor(m, k) {
     let a;
-    if (typeof m !== "number") {
+    if (m instanceof BucketSource) {
+      a = m.buckets;
+      m = m.m;
+    } else if (typeof m !== "number") {
       a = m;
       m = readBucketLength(a) * 32;
     } else {
@@ -150,18 +164,20 @@ export class BloomFilter {
     const data = typeof value === "string" ? JSON.parse(value) : value;
     assertSerialisedFilter(data);
 
-    if (data.version !== undefined && data.version !== SERIALISATION_VERSION) {
-      throw new RangeError(`Unsupported BloomFilter serialisation format version: ${data.version}.`);
+    const version = data.version;
+    if (version !== undefined && version !== SERIALISATION_VERSION) {
+      throw new RangeError(`Unsupported BloomFilter serialisation format version: ${version}.`);
     }
 
+    const m = data.m;
+    const k = data.k;
     const buckets = data.buckets;
     const expectedM = readBucketLength(buckets) * 32;
-    const m = data.m;
     if (m !== undefined && m !== expectedM) {
       throw new RangeError("Serialised BloomFilter has inconsistent m and buckets.");
     }
 
-    return initialiseFilter(Object.create(BloomFilter.prototype), expectedM, data.k, buckets);
+    return new BloomFilter(new BucketSource(buckets, expectedM), k);
   }
 
   static union(a, b) {
@@ -194,6 +210,9 @@ export class BloomFilter {
     assertExpectedSize(n);
     assertTargetError(error);
     const m = Math.ceil(-n * Math.log2(error) / Math.LN2);
+    if (m <= 0) {
+      throw new RangeError("Requested capacity and error rate produce a bit size too small to represent.");
+    }
     if (m > MAX_BITS) {
       throw new RangeError(`Requested capacity and error rate require more than ${MAX_BITS} bits.`);
     }
@@ -217,6 +236,9 @@ function initialiseFilter(filter, m, k, a) {
 }
 
 function readBuckets(a, n) {
+  // Genuine Uint32Arrays already contain valid values backed by allocated storage.
+  // Use the constructor to bypass overridden slice/iterator methods and species.
+  if (typedArrayName.call(a) === "Uint32Array") return new Uint32Array(a);
   // Validate bounded chunks before allocating their storage. Sparse arrays and
   // array-likes can claim a huge length without containing any bucket values.
   const chunkSize = 16384;
@@ -298,7 +320,8 @@ function assertBitSize(m) {
 }
 
 function readBucketLength(a) {
-  const length = a == null ? undefined : a.length;
+  const length = typedArrayName.call(a) === "Uint32Array"
+    ? typedArrayLength.call(a) : a == null ? undefined : a.length;
   if (!Number.isInteger(length) || length <= 0 || length > MAX_BUCKETS) {
     throw new RangeError(`m must be a positive number of bits or a non-empty array-like of up to ${MAX_BUCKETS} 32-bit buckets.`);
   }
