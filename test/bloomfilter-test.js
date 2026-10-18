@@ -245,6 +245,12 @@ describe('bloom filter', () => {
       }
       const throwing = { length: 2, 0: 1, get 1() { throw new Error('Bucket read failed'); } };
       assert.throws(() => new BloomFilter(throwing, 1), /Bucket read failed/);
+      const sparse = [];
+      sparse.length = 134217728;
+      for (const buckets of [sparse, new Proxy(sparse, {})]) {
+        assert.throws(() => new BloomFilter(buckets, 1), expected);
+        assert.throws(() => BloomFilter.fromJSON({ k: 1, buckets }), expected);
+      }
       assert.equal(allocations, 0);
     } finally {
       globalThis.ArrayBuffer = OriginalArrayBuffer;
@@ -271,6 +277,69 @@ describe('bloom filter', () => {
       assert.deepEqual(Array.from(f.buckets), [1, 0xffffffff]);
       f.buckets[1] = 0;
       assert.equal(buckets[1], 0xffffffff);
+    }
+  });
+
+  it('reads bucket lengths and serialised buckets only once', () => {
+    for (const restore of [buckets => new BloomFilter(buckets, 4),
+      buckets => BloomFilter.fromJSON({ m: 64, k: 4, buckets })]) {
+      let reads = 0;
+      const buckets = { get length() { return ++reads === 1 ? 2 : 0; }, 0: 1, 1: 0xffffffff };
+      const f = restore(buckets);
+      assert.equal(reads, 1);
+      assert.equal(f.m, 64);
+      assert.deepEqual(Array.from(f.buckets), [1, 0xffffffff]);
+    }
+    let reads = 0;
+    const f = BloomFilter.fromJSON({ k: 1, get buckets() {
+      assert.equal(++reads, 1);
+      return [1, 2];
+    } });
+    assert.equal(f.m, 64);
+    assert.deepEqual(Array.from(f.buckets), [1, 2]);
+  });
+
+  it('copies buckets correctly across snapshot chunk boundaries', () => {
+    for (const n of [16383, 16384, 16385, 32769]) {
+      const expected = Uint32Array.from({ length: n }, (_, i) => (i * 2654435761) >>> 0);
+      for (const buckets of [expected, Array.from(expected)]) {
+        const f = new BloomFilter(buckets, 4);
+        assert.equal(f.m, n * 32);
+        assert.deepEqual(f.buckets, expected);
+        assert.notEqual(f.buckets, buckets);
+        assert.deepEqual(BloomFilter.fromJSON(JSON.stringify(f)).buckets, expected);
+      }
+      let reads = 0;
+      const buckets = new Proxy({ length: n }, { get(target, key) {
+        if (key === 'length') return n;
+        assert.equal(Number(key), reads++);
+        return expected[key];
+      } });
+      assert.deepEqual(new BloomFilter(buckets, 4).buckets, expected);
+      assert.equal(reads, n);
+    }
+  });
+
+  it('allocates only validated chunks before a late invalid bucket', () => {
+    const OriginalUint32Array = globalThis.Uint32Array;
+    const allocations = [];
+    globalThis.Uint32Array = new Proxy(OriginalUint32Array, {
+      construct(target, args) {
+        const length = typeof args[0] === 'number' ? args[0] : args[0].length;
+        assert.ok(length <= 16384, 'Must not allocate storage for the claimed length');
+        allocations.push(length);
+        return new target(...args);
+      }
+    });
+    try {
+      const buckets = new Proxy({ length: 134217728 }, { get(target, key) {
+        if (key === 'length') return target.length;
+        return Number(key) < 16384 ? 1 : -1;
+      } });
+      assert.throws(() => new BloomFilter(buckets, 1), /Bucket values must be unsigned 32-bit integers/);
+      assert.deepEqual(allocations, [16384]);
+    } finally {
+      globalThis.Uint32Array = OriginalUint32Array;
     }
   });
 

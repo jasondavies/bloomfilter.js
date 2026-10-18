@@ -12,35 +12,12 @@ export class BloomFilter {
   constructor(m, k) {
     let a;
     if (typeof m !== "number") {
-      assertBucketArrayLike(m);
       a = m;
-      m = a.length * 32;
+      m = readBucketLength(a) * 32;
     } else {
       assertBitSize(m);
     }
-    assertHashCount(k);
-
-    const n = Math.ceil(m / 32);
-    m = n * 32;
-    if (a) {
-      // Grow a validated snapshot instead of allocating from an unchecked length.
-      const values = [];
-      for (let i = 0; i < n; ++i) {
-        const value = a[i];
-        assertBucketValue(value);
-        values.push(value);
-      }
-      a = values;
-    }
-    this.m = m;
-    this.k = k;
-
-    const kbytes = 1 << Math.ceil(Math.log2(Math.ceil(Math.log2(m) / 8)));
-    const ArrayType = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array;
-    const kbuffer = new ArrayBuffer(kbytes * k);
-    const buckets = a ? new Uint32Array(a) : new Uint32Array(n);
-    this.buckets = buckets;
-    this._locations = new ArrayType(kbuffer);
+    initialiseFilter(this, m, k, a);
   }
 
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
@@ -177,13 +154,14 @@ export class BloomFilter {
       throw new RangeError(`Unsupported BloomFilter serialisation format version: ${data.version}.`);
     }
 
-    assertBucketArrayLike(data.buckets);
-    const expectedM = data.buckets.length * 32;
-    if (data.m !== undefined && data.m !== expectedM) {
+    const buckets = data.buckets;
+    const expectedM = readBucketLength(buckets) * 32;
+    const m = data.m;
+    if (m !== undefined && m !== expectedM) {
       throw new RangeError("Serialised BloomFilter has inconsistent m and buckets.");
     }
 
-    return new BloomFilter(data.buckets, data.k);
+    return initialiseFilter(Object.create(BloomFilter.prototype), expectedM, data.k, buckets);
   }
 
   static union(a, b) {
@@ -222,6 +200,44 @@ export class BloomFilter {
     const k = Math.ceil(Math.LN2 * m / n);
     return new BloomFilter(m, k);
   }
+}
+
+function initialiseFilter(filter, m, k, a) {
+  assertHashCount(k);
+  const n = Math.ceil(m / 32);
+  m = n * 32;
+  const buckets = a ? readBuckets(a, n) : new Uint32Array(n);
+  const kbytes = 1 << Math.ceil(Math.log2(Math.ceil(Math.log2(m) / 8)));
+  const ArrayType = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array;
+  filter.m = m;
+  filter.k = k;
+  filter.buckets = buckets;
+  filter._locations = new ArrayType(new ArrayBuffer(kbytes * k));
+  return filter;
+}
+
+function readBuckets(a, n) {
+  // Validate bounded chunks before allocating their storage. Sparse arrays and
+  // array-likes can claim a huge length without containing any bucket values.
+  const chunkSize = 16384;
+  const values = new Array(Math.min(n, chunkSize));
+  const chunks = [];
+  for (let start = 0; start < n; start += chunkSize) {
+    const length = Math.min(n - start, chunkSize);
+    values.length = length;
+    for (let i = 0; i < length; ++i) {
+      const value = a[start + i];
+      assertBucketValue(value);
+      values[i] = value;
+    }
+    chunks.push(new Uint32Array(values));
+  }
+  if (chunks.length === 1) return chunks[0];
+  const buckets = new Uint32Array(n);
+  for (let i = 0; i < chunks.length; ++i) {
+    buckets.set(chunks[i], i * chunkSize);
+  }
+  return buckets;
 }
 
 // FNV-1a over UTF-16 code units, preserving version-1 serialisation.
@@ -279,10 +295,12 @@ function assertBitSize(m) {
   }
 }
 
-function assertBucketArrayLike(a) {
-  if (a == null || !Number.isInteger(a.length) || a.length <= 0 || a.length > MAX_BUCKETS) {
+function readBucketLength(a) {
+  const length = a == null ? undefined : a.length;
+  if (!Number.isInteger(length) || length <= 0 || length > MAX_BUCKETS) {
     throw new RangeError(`m must be a positive number of bits or a non-empty array-like of up to ${MAX_BUCKETS} 32-bit buckets.`);
   }
+  return length;
 }
 
 function assertBucketValue(value) {

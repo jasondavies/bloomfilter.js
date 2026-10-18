@@ -232,12 +232,17 @@ the application is responsible for delivery or resynchronisation.
 - Added `addLocations` and `fromLocations` for sparse bit updates.
 - `locations(value)` now uses the same string coercion as `add` and `test`.
   Positions previously saved from non-string arguments to `locations` may
-  differ; recompute them from the original values. String positions and the
+  differ; recompute them from the original values. Inputs such as `null`,
+  `undefined` and `[1, 2]`, which previously threw, now return positions for
+  their string representations. String positions and the
   hashing used by `add` and `test` are unchanged.
 - Hash counts are now limited to 2,048 to prevent excessive allocation and work.
   This rejects previously accepted configurations and serialised filters with
   larger `k` values. Positive fractional expected sizes remain accepted by
   `withTargetError`, subject to the bit-size and hash-count limits.
+- Development benchmarks are no longer included in the npm package.
+  `benchmark.js` remains available in a repository checkout;
+  `benchmark-compare.js` has been removed.
 
 Benchmark
 ---------
