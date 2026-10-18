@@ -205,6 +205,59 @@ describe('bloom filter', () => {
     assert.throws(() => new BloomFilter([1, -1], 1), /Bucket values must be unsigned 32-bit integers/);
   });
 
+  it('validates bucket contents before allocating filter storage', () => {
+    const OriginalArrayBuffer = globalThis.ArrayBuffer;
+    const OriginalUint32Array = globalThis.Uint32Array;
+    let allocations = 0;
+    const guard = {
+      construct() {
+        ++allocations;
+        throw new Error('Unexpected filter allocation');
+      }
+    };
+    globalThis.ArrayBuffer = new Proxy(OriginalArrayBuffer, guard);
+    globalThis.Uint32Array = new Proxy(OriginalUint32Array, guard);
+    try {
+      const expected = { name: 'RangeError', message: /Bucket values must be unsigned 32-bit integers/ };
+      for (const buckets of [
+        { length: 134217728 }, { 0: 1, length: 134217728 },
+        [1, -1], [1, 0x100000000], [1, 0.5], [1, '2'], [1, null], [1, , 3]
+      ]) {
+        assert.throws(() => new BloomFilter(buckets, 1), expected);
+        assert.throws(() => BloomFilter.fromJSON({ k: 1, buckets }), expected);
+        assert.throws(() => BloomFilter.fromJSON(JSON.stringify({ k: 1, buckets })), expected);
+      }
+      const throwing = { length: 2, 0: 1, get 1() { throw new Error('Bucket read failed'); } };
+      assert.throws(() => new BloomFilter(throwing, 1), /Bucket read failed/);
+      assert.equal(allocations, 0);
+    } finally {
+      globalThis.ArrayBuffer = OriginalArrayBuffer;
+      globalThis.Uint32Array = OriginalUint32Array;
+    }
+  });
+
+  it('copies validated array-like bucket values after reading each once', () => {
+    for (const restore of [buckets => new BloomFilter(buckets, 4),
+      buckets => BloomFilter.fromJSON({ k: 4, buckets })]) {
+      const reads = [0, 0];
+      const buckets = {
+        length: 2,
+        get 0() { return ++reads[0] === 1 ? 0x80000000 : -1; },
+        get 1() { return ++reads[1] === 1 ? 0xffffffff : -1; }
+      };
+      const f = restore(buckets);
+      assert.deepEqual(reads, [1, 1]);
+      assert.deepEqual(f.toJSON(), { version: 1, m: 64, k: 4, buckets: [0x80000000, 0xffffffff] });
+    }
+    for (const buckets of [[1, 0xffffffff], new Uint32Array([1, 0xffffffff]), { 0: 1, 1: 0xffffffff, length: 2 }]) {
+      const f = new BloomFilter(buckets, 4);
+      buckets[0] = 0;
+      assert.deepEqual(Array.from(f.buckets), [1, 0xffffffff]);
+      f.buckets[1] = 0;
+      assert.equal(buckets[1], 0xffffffff);
+    }
+  });
+
   it('rejects invalid target error inputs', () => {
     assert.throws(() => BloomFilter.withTargetError(0, 1e-5), /n must be a finite number at least 1/);
     assert.throws(() => BloomFilter.withTargetError(100, 1), /error must be a finite number between 0 and 1, exclusive/);

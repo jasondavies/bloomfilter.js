@@ -56,7 +56,10 @@ bits, so the resulting `m` is `buckets.length * 32`. There may be at most
 134,217,728 buckets; each value must be an integer from 0 to 4,294,967,295.
 `k` must be an integer from 1 to 2,048. Invalid parameters throw `RangeError`.
 
-The filter owns its copy: later changes to the input buckets do not affect it.
+Bucket values are read once into a validated snapshot before allocating the
+filter's buffers. Temporary storage grows with the number of validated values,
+not just the declared length. The filter owns its copy: later changes to the
+input buckets do not affect it.
 
 ### `BloomFilter.withTargetError(n, error)`
 
@@ -222,24 +225,15 @@ the application is responsible for delivery or resynchronisation.
 Benchmark
 ---------
 
-Run the benchmark commands from a Git checkout of this repository. The benchmark
-scripts are development tools and are not included in the npm package.
+Run the benchmark from a checkout of this repository. The script is a
+development tool and is not included in the npm package.
 
 ```sh
 npm run benchmark
 ```
 
-To compare the working-tree implementation with the original JavaScript
-implementation at commit `3703d8a`, run:
-
-```sh
-npm run benchmark:compare
-npm run benchmark:compare -- --reverse
-```
-
-Both commands use the same runner and fill filters to their expected capacity.
-The comparison runs four ASCII-key workloads in separate processes and verifies
-matching filter contents and query results; `--reverse` reverses execution order.
+The benchmark uses 100,000 16-byte ASCII keys and fills filters to their expected
+capacity. It verifies filter contents and query results outside the timings.
 
 Each operation warms up for at least 100 ms and three batches, followed by nine
 measurement samples of at least 5 ms each. Results show medians and ranges in

@@ -22,20 +22,23 @@ export class BloomFilter {
 
     const n = Math.ceil(m / 32);
     m = n * 32;
+    if (a) {
+      // Grow a validated snapshot instead of allocating from an unchecked length.
+      const values = [];
+      for (let i = 0; i < n; ++i) {
+        const value = a[i];
+        assertBucketValue(value);
+        values.push(value);
+      }
+      a = values;
+    }
     this.m = m;
     this.k = k;
 
     const kbytes = 1 << Math.ceil(Math.log2(Math.ceil(Math.log2(m) / 8)));
     const ArrayType = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array;
     const kbuffer = new ArrayBuffer(kbytes * k);
-    const buckets = new Uint32Array(n);
-    if (a) {
-      for (let i = 0; i < n; ++i) {
-        const value = a[i];
-        assertBucketValue(value);
-        buckets[i] = value;
-      }
-    }
+    const buckets = a ? new Uint32Array(a) : new Uint32Array(n);
     this.buckets = buckets;
     this._locations = new ArrayType(kbuffer);
   }

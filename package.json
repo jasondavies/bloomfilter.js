@@ -24,7 +24,6 @@
   ],
   "scripts": {
     "benchmark": "node --expose-gc benchmark.js",
-    "benchmark:compare": "node benchmark-compare.js",
     "test": "node --test"
   },
   "engines": {
