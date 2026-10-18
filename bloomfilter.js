@@ -91,6 +91,22 @@ export class BloomFilter {
     }
   }
 
+  // Set sparse bit positions, validating the whole input before changing buckets.
+  addLocations(locations) {
+    const positions = [...locations];
+    const m = this.m;
+    for (const position of positions) {
+      if (!Number.isInteger(position) || position < 0 || position >= m) {
+        throw new RangeError("Locations must be integer bit positions from 0 to m - 1.");
+      }
+    }
+    const buckets = this.buckets;
+    for (const position of positions) {
+      buckets[position >>> 5] |= 1 << (position & 31);
+    }
+    return this;
+  }
+
   test(v) {
     v = v + "";
 
@@ -145,6 +161,11 @@ export class BloomFilter {
   }
 
   // Static methods.
+
+  static fromLocations(m, k, locations) {
+    assertBitSize(m);
+    return new BloomFilter(m, k).addLocations(locations);
+  }
 
   static fromJSON(value) {
     const data = typeof value === "string" ? JSON.parse(value) : value;

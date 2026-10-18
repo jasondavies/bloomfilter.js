@@ -37,6 +37,34 @@ const loadedBloom = BloomFilter.fromJSON(json);
 const autoBloom = BloomFilter.withTargetError(1_000_000, 1e-6);
 ```
 
+Sparse bit positions
+--------------------
+
+Use `addLocations(locations)` to set bit positions on an existing filter. It
+preserves existing bits and returns the filter for chaining.
+`BloomFilter.fromLocations(m, k, locations)` creates a filter with those bits set.
+
+```javascript
+const source = new BloomFilter(1024, 4);
+const positions = Array.from(source.locations("foo"));
+const target = BloomFilter.fromLocations(source.m, source.k, positions);
+target.addLocations(source.locations("bar"));
+target.test("foo"); // true
+target.test("bar"); // true
+```
+
+Both methods accept an iterable of numeric integer positions, including arrays,
+typed arrays and sets. Positions must be at least zero and less than the filter's
+allocated `m`. As with the constructor, `fromLocations` rounds the requested bit
+count up to a multiple of 32. Duplicates are harmless; an empty iterable sets no
+bits. Invalid positions throw `RangeError`, and non-iterable inputs throw
+`TypeError`. Input is collected and validated before any bits are changed.
+
+When transferring hash locations between filters, use the same `m`, `k` and
+hashing scheme. `locations(value)` expects a string and returns a reusable typed
+array that is overwritten by the next call to `locations`; copy it with
+`Array.from` if you need to retain the positions.
+
 Benchmark
 ---------
 

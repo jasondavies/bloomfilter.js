@@ -48,6 +48,77 @@ describe('bloom filter', () => {
     assert.equal(f.test(2), false);
   });
 
+  it('adds sparse locations without clearing existing bits', () => {
+    const f = new BloomFilter([2, 0], 4);
+    const buckets = f.buckets;
+    const positions = [63, 0, 31, 32, 0];
+    assert.equal(f.addLocations(positions), f);
+    assert.equal(f.buckets, buckets);
+    assert.deepEqual(Array.from(f.buckets), [0x80000003, 0x80000001]);
+    assert.deepEqual(positions, [63, 0, 31, 32, 0]);
+    assert.equal(f.addLocations([]), f);
+    assert.deepEqual(Array.from(f.buckets), [0x80000003, 0x80000001]);
+  });
+
+  it('accepts sets, typed arrays and single-use iterators of locations', () => {
+    const f = new BloomFilter(96, 4);
+    f.addLocations(new Set([0, 31]));
+    f.addLocations(new Uint32Array([32, 63]));
+    f.addLocations((function* () { yield 64; yield 95; })());
+    assert.deepEqual(Array.from(f.buckets), [0x80000001, 0x80000001, 0x80000001]);
+  });
+
+  it('copies hash locations to a compatible filter', () => {
+    for (const m of [256, 288, 65568]) {
+      const source = new BloomFilter(m, 7);
+      const target = BloomFilter.fromLocations(m, 7, source.locations('café'));
+      source.add('café');
+      for (const value of ['😀', '\ud800', 'next']) {
+        target.addLocations(source.locations(value));
+        source.add(value);
+      }
+      assert.deepEqual(target.toJSON(), source.toJSON());
+      for (const value of ['café', '😀', '\ud800', 'next']) assert.equal(target.test(value), true);
+      assert.deepEqual(BloomFilter.fromJSON(JSON.stringify(target)).toJSON(), source.toJSON());
+    }
+  });
+
+  it('creates filters from locations using the rounded bit size', () => {
+    const f = BloomFilter.fromLocations(33, 4, [0, 32, 63]);
+    assert.deepEqual(f.toJSON(), { version: 1, m: 64, k: 4, buckets: [1, 0x80000001] });
+    assert.equal(BloomFilter.fromLocations(33, 4, []).countBits(), 0);
+    assert.throws(() => BloomFilter.fromLocations(33, 4, [64]), RangeError);
+    assert.throws(() => BloomFilter.fromLocations(0, 4, []), RangeError);
+    assert.throws(() => BloomFilter.fromLocations([0], 4, []), RangeError);
+    assert.throws(() => BloomFilter.fromLocations(32, 0, []), RangeError);
+  });
+
+  it('rejects invalid locations before changing the filter', () => {
+    const f = new BloomFilter([2, 0], 4);
+    for (const position of [-1, 64, 0x100000000, 0.5, NaN, Infinity, '1', null, undefined, 1n]) {
+      assert.throws(() => f.addLocations([0, position]), {
+        name: 'RangeError', message: /integer bit positions/
+      });
+      assert.deepEqual(Array.from(f.buckets), [2, 0]);
+    }
+    for (const input of [null, undefined, 1, {}, { length: 1, 0: 0 }]) {
+      assert.throws(() => f.addLocations(input), TypeError);
+      assert.deepEqual(Array.from(f.buckets), [2, 0]);
+    }
+    const failing = (function* () { yield 0; throw new Error('iterator failed'); })();
+    assert.throws(() => f.addLocations(failing), /iterator failed/);
+    assert.deepEqual(Array.from(f.buckets), [2, 0]);
+  });
+
+  it('sets sparse locations through the maximum bit size', () => {
+    // Exercise unsigned indexing without allocating a 512 MiB filter.
+    const f = { m: 0x100000000, buckets: Object.create(null) };
+    assert.equal(BloomFilter.prototype.addLocations.call(f, [0x80000000, 0xffffffff]), f);
+    assert.equal(f.buckets[0x04000000], 1);
+    assert.equal(f.buckets[0x07ffffff] >>> 0, 0x80000000);
+    assert.deepEqual(Object.keys(f.buckets), ['67108864', '134217727']);
+  });
+
   it('serialises and deserialises with JSON', () => {
     const f = new BloomFilter(1000, 4);
     f.add("Bess");
